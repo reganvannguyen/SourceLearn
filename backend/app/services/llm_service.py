@@ -4,7 +4,7 @@ from google import genai
 from pydantic import BaseModel
 from google.genai import types
 
-
+#to get output from ai in a structure json 
 class AnswerResponse(BaseModel):
     answer: str
     citations: list[int]
@@ -22,26 +22,37 @@ def generate_answer(question: str, chunks: list):
     try:
 
         if not chunks:
-            return "The provided sources do not contain enough information."
+            return AnswerResponse(answer= "the provided sources do not contain enough information.", citations=[]).model_dump_json()
     
         context = "\n\n".join(
-        f"[page {chunk.page_number}]\n{chunk.text}"
-        for chunk in chunks
-    )
+            f"[chunk_id={chunk.id}, page={chunk.page_number}]\n{chunk.text}" for chunk in chunks)
+
+        
         prompt = f"""
-        Answer in 2–4 sentences using only the context.
-        Include page citations like [page 4] after relevant claims.
-        If the context does not support the answer, say so clearly.
+        Answer the question using only the provided context.
+        Each context chunk has a chunk ID.
+        Return the IDs of every chunk that directly supports your answer.
+        If the provided context does not contain enough information,
+        say so and return an empty citations list.
+
 
         Context:
         {context}
 
-        Question"
+        Question:
         {question}
         """
 
-        response = client.models.generate_content(model = "gemini-2.5-flash", contents = prompt)
+        response = client.models.generate_content(
+            model = "gemini-2.5-flash", 
+            contents = prompt, 
+            config = types.GenerateContentConfig(response_mime_type="application/json",
+                                                 response_schema= AnswerResponse
+                    ),
+            )
+
+        
         return response.text
     
-    except Exception as e:
-        return f"an error occurred: {e}"
+    except Exception:
+        raise
