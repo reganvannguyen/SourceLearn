@@ -44,6 +44,7 @@ def process_document(pdf_path: str):
 
 
 if __name__ == "__main__":
+    import sys
     from sqlalchemy import text
 
     with engine.begin() as connection:
@@ -53,6 +54,7 @@ if __name__ == "__main__":
 
     Base.metadata.create_all(bind=engine)
 
-    process_document(
-        "/home/regan-nguyen/Desktop/projects/SourceLearn/backend/app/services/Topic 1 - Introduction_to_Operating_Systems_History.pdf"
-    )
+    if len(sys.argv) > 1:
+        process_document(sys.argv[1])
+    else:
+        print("Usage: python -m app.services.ingestion_service <path_to_pdf>")

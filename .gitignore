@@ -15,10 +15,22 @@ venv/
 env/
 ENV/
 
+# Node.js and frontend build artifacts
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+.eslintcache
+playwright-report/
+test-results/
+
 # Environment files and secrets
 .env
 .env.*
 !.env.example
+*.pem
+*.key
 
 # Local logs, databases, and generated data
 *.log
@@ -35,4 +47,6 @@ data/
 .vscode/
 .idea/
 .DS_Store
+Thumbs.db
 *.swp
+*.swo
