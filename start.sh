@@ -63,7 +63,7 @@ cleanup() {
     wait "$frontend_pid" 2>/dev/null || true
   fi
 
-  docker compose -f "$COMPOSE_FILE" stop db >/dev/null 2>&1 || true
+  docker compose -f "$COMPOSE_FILE" down >/dev/null 2>&1 || true
 }
 
 handle_signal() {
