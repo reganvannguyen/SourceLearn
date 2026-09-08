@@ -73,6 +73,11 @@ handle_signal() {
 trap cleanup EXIT
 trap handle_signal INT TERM
 
+# Ensure ports are free before starting
+if command -v fuser >/dev/null 2>&1; then
+  fuser -k "$BACKEND_PORT/tcp" "$FRONTEND_PORT/tcp" >/dev/null 2>&1 || true
+fi
+
 echo "Starting PostgreSQL..."
 docker compose -f "$COMPOSE_FILE" up -d --wait --wait-timeout 60 db
 

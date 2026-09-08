@@ -9,7 +9,7 @@ from app.models.message import Message
 from app.models.notebook import Notebook
 from app.schemas.message import CitationItem, MessageCreateRequest, MessageResponse
 from app.schemas.question import AnswerResponse
-from app.services.llm_service import generate_answer
+from app.services.llm_service import condense_query, generate_answer
 from app.services.retrieval_service import retrieve_chunks
 
 router = APIRouter(tags=["messages"])
@@ -79,7 +79,20 @@ def create_notebook_message(
             detail="Message content cannot be empty",
         )
 
-    # 1. Save user question
+    # 1. Fetch recent conversation history (last 6 messages) before saving new question
+    prev_msgs_stmt = (
+        select(Message)
+        .where(Message.notebook_id == notebook_id)
+        .order_by(Message.created_at.desc(), Message.id.desc())
+        .limit(6)
+    )
+    prev_messages = list(reversed(db.scalars(prev_msgs_stmt).all()))
+    chat_history = [
+        {"role": m.sender, "content": m.content}
+        for m in prev_messages
+    ]
+
+    # 2. Save user question
     user_message = Message(
         notebook_id=notebook_id,
         sender="user",
@@ -90,7 +103,7 @@ def create_notebook_message(
     db.commit()
     db.refresh(user_message)
 
-    # 2. Check if notebook has any documents
+    # 3. Check if notebook has any documents
     doc_count_stmt = select(Document.id).where(Document.notebook_id == notebook_id)
     has_docs = db.scalars(doc_count_stmt).first() is not None
 
@@ -118,8 +131,13 @@ def create_notebook_message(
             created_at=assistant_message.created_at,
         )
 
-    # 3. Retrieve chunks scoped to this notebook
-    chunks = retrieve_chunks(db, question_text, notebook_id=notebook_id, limit=5)
+    # 4. Formulate standalone search query for vector retrieval if follow-up
+    search_query = condense_query(question_text, chat_history=chat_history)
+    if search_query != question_text:
+        print(f"Reformulated follow-up query: '{question_text}' -> '{search_query}'")
+
+    # 5. Retrieve chunks scoped to this notebook using standalone query
+    chunks = retrieve_chunks(db, search_query, notebook_id=notebook_id, limit=5)
 
     if not chunks:
         no_chunks_reply = (
@@ -145,11 +163,11 @@ def create_notebook_message(
             created_at=assistant_message.created_at,
         )
 
-    # 4. Generate answer using LLM
-    answer_raw = generate_answer(question_text, chunks)
+    # 6. Generate answer using LLM with context chunks + chat history
+    answer_raw = generate_answer(question_text, chunks, chat_history=chat_history)
     result = AnswerResponse.model_validate_json(answer_raw)
 
-    # 5. Build rich citation items for cited chunk IDs
+    # 7. Build rich citation items for cited chunk IDs
     chunk_map = {chunk.id: chunk for chunk in chunks}
     cited_chunk_ids = [cid for cid in result.citations if cid in chunk_map]
 
@@ -177,7 +195,7 @@ def create_notebook_message(
             )
         )
 
-    # 6. Save assistant message with citations
+    # 8. Save assistant message with citations
     citations_data = [c.model_dump() for c in citation_items]
     assistant_message = Message(
         notebook_id=notebook_id,
