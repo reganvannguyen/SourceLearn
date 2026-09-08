@@ -113,8 +113,13 @@ def generate_answer(
 
         prompt = f"""Answer the question using the provided context and recent conversation history.
 Each context chunk has a chunk ID.
-Return the IDs of every chunk that directly supports your answer.
-If the provided context does not contain enough information, say so and return an empty citations list.
+
+IMPORTANT CITATION INSTRUCTIONS:
+1. Place inline citations directly after each sentence or claim using the bracketed chunk ID, e.g. "An operating system coordinates shared hardware [17]." or "It provides private memory illusions [39]."
+2. If multiple chunks support a single sentence, group them like [17, 39].
+3. Every factual sentence or claim drawn from the context must have an inline citation right after it.
+4. In the JSON "citations" field, return the list of all chunk IDs cited in your text.
+5. If the context does not contain enough information, say so clearly and return an empty citations list.
 {history_block}
 Context:
 {context}

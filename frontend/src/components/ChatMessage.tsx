@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import type { CitationItem } from "../api/messages";
 
 export type ChatMessageSender = "user" | "assistant";
@@ -16,6 +17,84 @@ type ChatMessageProps = {
   citations?: CitationItem[];
   isThinking?: boolean;
   onCitationClick?: (citation: CitationItem) => void;
+};
+
+// Parses inline bracketed citations like [17] or [17, 39] and replaces them with interactive badges
+const renderContentWithCitations = (
+  text: string,
+  citations: CitationItem[],
+  onCitationClick?: (citation: CitationItem) => void
+): ReactNode[] => {
+  if (!text) return [];
+  if (!citations || citations.length === 0) {
+    return [text];
+  }
+
+  // Map by chunk_id for direct chunk ID citations
+  const chunkMap = new Map<number, CitationItem>();
+  citations.forEach((c) => chunkMap.set(c.chunk_id, c));
+
+  // Regex to match [17] or [17, 39] or [1]
+  const citationRegex = /\[(\d+(?:\s*,\s*\d+)*)\]/g;
+  const nodes: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = citationRegex.exec(text)) !== null) {
+    const matchStart = match.index;
+    const matchEnd = match.index + match[0].length;
+
+    // Push preceding text
+    if (matchStart > lastIndex) {
+      nodes.push(text.substring(lastIndex, matchStart));
+    }
+
+    // Parse IDs within brackets
+    const rawIds = match[1].split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n));
+    const matchedCitations: { id: number; cite: CitationItem }[] = [];
+
+    for (const num of rawIds) {
+      // 1. Try matching by chunk_id
+      if (chunkMap.has(num)) {
+        matchedCitations.push({ id: num, cite: chunkMap.get(num)! });
+      }
+      // 2. Try matching by 1-indexed citation list position (e.g. [1])
+      else if (num >= 1 && num <= citations.length) {
+        matchedCitations.push({ id: num, cite: citations[num - 1] });
+      }
+    }
+
+    if (matchedCitations.length > 0) {
+      nodes.push(
+        <span key={`citation-group-${matchStart}`} className="chat-inline-citations-group">
+          {matchedCitations.map(({ id, cite }, idx) => (
+            <button
+              key={`cite-pill-${id}-${idx}-${matchStart}`}
+              type="button"
+              className="chat-inline-citation"
+              onClick={() => onCitationClick?.(cite)}
+              title={`View in ${cite.file_name} (Page ${cite.page_number}):\n"${cite.snippet}"`}
+            >
+              <span className="chat-inline-citation__icon">📄</span>
+              <span className="chat-inline-citation__page">p. {cite.page_number}</span>
+            </button>
+          ))}
+        </span>
+      );
+    } else {
+      // If none matched, render original bracket as-is
+      nodes.push(match[0]);
+    }
+
+    lastIndex = matchEnd;
+  }
+
+  // Push remaining text
+  if (lastIndex < text.length) {
+    nodes.push(text.substring(lastIndex));
+  }
+
+  return nodes;
 };
 
 const ChatMessage = ({
@@ -48,7 +127,11 @@ const ChatMessage = ({
             <span className="thinking-text">Searching documents and generating response…</span>
           </div>
         ) : (
-          <p className="chat-message__text">{content}</p>
+          <p className="chat-message__text">
+            {isUserMessage
+              ? content
+              : renderContentWithCitations(content, citations, onCitationClick)}
+          </p>
         )}
       </div>
 
