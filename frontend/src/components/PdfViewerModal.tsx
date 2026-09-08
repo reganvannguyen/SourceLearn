@@ -3,15 +3,24 @@ import { getDocumentFileUrl, type DocumentResponse } from "../api/documents";
 
 type PdfViewerModalProps = {
   document: DocumentResponse | null;
+  initialPage?: number;
+  citedSnippet?: string;
   onClose: () => void;
 };
 
-const PdfViewerModal = ({ document, onClose }: PdfViewerModalProps) => {
+const PdfViewerModal = ({
+  document,
+  initialPage,
+  citedSnippet,
+  onClose,
+}: PdfViewerModalProps) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [showExcerpt, setShowExcerpt] = useState(Boolean(citedSnippet));
 
   useEffect(() => {
     if (document) {
       setIsLoading(true);
+      setShowExcerpt(Boolean(citedSnippet));
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Escape") {
           onClose();
@@ -20,11 +29,12 @@ const PdfViewerModal = ({ document, onClose }: PdfViewerModalProps) => {
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [document, onClose]);
+  }, [document, initialPage, citedSnippet, onClose]);
 
   if (!document) return null;
 
-  const fileUrl = getDocumentFileUrl(document.document_id);
+  const rawUrl = getDocumentFileUrl(document.document_id);
+  const fileUrlWithHash = initialPage ? `${rawUrl}#page=${initialPage}` : rawUrl;
 
   return (
     <div
@@ -44,14 +54,30 @@ const PdfViewerModal = ({ document, onClose }: PdfViewerModalProps) => {
         <header className="pdf-modal-header">
           <div className="pdf-modal-header__info">
             <span className="pdf-modal-header__badge">PDF Document</span>
+            {initialPage && (
+              <span className="pdf-modal-header__page-badge">
+                🎯 Jumped to Page {initialPage}
+              </span>
+            )}
             <h3 className="pdf-modal-header__title" title={document.file_name}>
               {document.file_name}
             </h3>
           </div>
 
           <div className="pdf-modal-header__actions">
+            {citedSnippet && (
+              <button
+                type="button"
+                className={`pdf-modal-excerpt-toggle ${showExcerpt ? "active" : ""}`}
+                onClick={() => setShowExcerpt((prev) => !prev)}
+                title="Toggle cited excerpt preview"
+              >
+                {showExcerpt ? "Hide Excerpt" : "Show Excerpt"}
+              </button>
+            )}
+
             <a
-              href={fileUrl}
+              href={fileUrlWithHash}
               target="_blank"
               rel="noopener noreferrer"
               className="pdf-modal-action-btn"
@@ -86,15 +112,28 @@ const PdfViewerModal = ({ document, onClose }: PdfViewerModalProps) => {
           </div>
         </header>
 
+        {citedSnippet && showExcerpt && (
+          <aside className="pdf-modal-excerpt-banner" aria-label="Cited excerpt">
+            <div className="pdf-modal-excerpt-header">
+              <span className="pdf-modal-excerpt-icon">💡</span>
+              <span className="pdf-modal-excerpt-title">
+                Cited Source Excerpt (Page {initialPage || 1})
+              </span>
+            </div>
+            <p className="pdf-modal-excerpt-body">"{citedSnippet}"</p>
+          </aside>
+        )}
+
         <div className="pdf-modal-body">
           {isLoading && (
             <div className="pdf-modal-loading">
               <div className="pdf-modal-spinner" />
-              <span>Loading PDF document…</span>
+              <span>Loading page {initialPage || 1}…</span>
             </div>
           )}
           <iframe
-            src={fileUrl}
+            key={fileUrlWithHash}
+            src={fileUrlWithHash}
             title={document.file_name}
             className="pdf-viewer-frame"
             onLoad={() => setIsLoading(false)}
