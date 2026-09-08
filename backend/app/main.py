@@ -4,11 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.api.documents import router as documents_router
 from app.api.notebooks import router as notebooks_router
+from app.api.messages import router as messages_router
 from app.db.base import Base
 from app.db.database import engine
 import app.models.document
 import app.models.document_chunk
 import app.models.notebook
+import app.models.message
 
 
 def init_db():
@@ -19,6 +21,18 @@ def init_db():
         )
         connection.execute(
             text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_path VARCHAR DEFAULT ''")
+        )
+        connection.execute(
+            text("""
+                CREATE TABLE IF NOT EXISTS messages (
+                    id SERIAL PRIMARY KEY,
+                    notebook_id INTEGER NOT NULL REFERENCES notebooks(id) ON DELETE CASCADE,
+                    sender VARCHAR(50) NOT NULL,
+                    content TEXT NOT NULL,
+                    citations JSONB DEFAULT '[]'::jsonb,
+                    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
+                )
+            """)
         )
     Base.metadata.create_all(bind=engine)
 
@@ -41,5 +55,4 @@ app.add_middleware(
 
 app.include_router(documents_router)
 app.include_router(notebooks_router)
-
-
+app.include_router(messages_router)

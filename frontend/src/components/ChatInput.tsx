@@ -2,18 +2,19 @@ import { useId, useState, type FormEvent } from "react";
 
 type ChatInputProps = {
   onSend: (message: string) => void;
+  disabled?: boolean;
 };
 
-const ChatInput = ({ onSend }: ChatInputProps) => {
+const ChatInput = ({ onSend, disabled = false }: ChatInputProps) => {
   const [message, setMessage] = useState("");
   const inputId = useId();
-  const canSend = message.trim().length > 0;
+  const canSend = !disabled && message.trim().length > 0;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const trimmedMessage = message.trim();
-    if (!trimmedMessage) {
+    if (!trimmedMessage || disabled) {
       return;
     }
 
@@ -22,7 +23,7 @@ const ChatInput = ({ onSend }: ChatInputProps) => {
   };
 
   return (
-    <form className="chat-input" onSubmit={handleSubmit}>
+    <form className={`chat-input ${disabled ? "chat-input--disabled" : ""}`} onSubmit={handleSubmit}>
       <label className="sr-only" htmlFor={inputId}>
         Message
       </label>
@@ -32,9 +33,10 @@ const ChatInput = ({ onSend }: ChatInputProps) => {
         type="text"
         value={message}
         onChange={(event) => setMessage(event.target.value)}
-        placeholder="Ask a question about your study material..."
+        placeholder={disabled ? "Thinking…" : "Ask a question about your study material..."}
         autoComplete="off"
         maxLength={2000}
+        disabled={disabled}
       />
       <button
         className="chat-input__send"
