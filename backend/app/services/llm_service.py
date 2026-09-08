@@ -85,7 +85,7 @@ def condense_query(question: str, chat_history: Optional[List[dict]] = None) -> 
     
     Optimizations:
     1. Skips the LLM call entirely if the question is self-contained (saves API quota).
-    2. Uses 'gemini-3.5-flash-lite' (separate quota bucket from gemini-2.5-flash) to prevent
+    2. Uses 'gemini-3.5-flash-lite' (separate quota bucket from gemini-3.8-flash) to prevent
        exhausting the main answer model's quota.
     """
     if not chat_history:
@@ -182,7 +182,7 @@ Question:
 
         def call_generate():
             return client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.8-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
