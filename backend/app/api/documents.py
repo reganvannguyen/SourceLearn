@@ -6,11 +6,13 @@ from app.services.embedding_service import embed_chunks
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk 
 from app.db.database import get_db
+from fastapi import APIRouter
+
+router = APIRouter( prefix= "/documents", tags=["documents"])
 
 
-app = FastAPI()
 
-@app.post("/documents")
+@router.post("/")
 async def upload_document(file: UploadFile, db: Session = Depends(get_db)):
     pages = await extract_pdf(file)
     chunks = chunk_pages(pages)

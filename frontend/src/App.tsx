@@ -1,21 +1,9 @@
 //main screen
-
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
 import './App.css'
+import StudyPage from "./pages/StudyPage"
 
-function App() {
-  const [count, setCount] = useState(0)
+const App = () => {
+  return <StudyPage/>;
+};
 
-  return (
-    <div>
-      <h1>SourceLearn</h1>
-      <p>asking question about document</p>
-    </div>
-   
-  )
-}
-
-export default App
+export default App;
