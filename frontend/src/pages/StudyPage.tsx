@@ -10,10 +10,12 @@ import {
     type CitationItem,
 } from "../api/messages";
 import type { Notebook } from "../api/notebooks";
+import { updateNotebook } from "../api/notebooks";
 import ChatInput from "../components/ChatInput";
 import ChatMessage, {
     type ChatMessageData,
 } from "../components/ChatMessage";
+import EditNotebookModal from "../components/EditNotebookModal";
 import FileUpload from "../components/FileUpload";
 import PdfViewerModal from "../components/PdfViewerModal";
 import StudySidebar from "../components/StudySidebar";
@@ -33,6 +35,8 @@ type StudyPageProps = {
 };
 
 const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
+    const [currentNotebook, setCurrentNotebook] = useState<Notebook>(notebook);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessageData[]>(initialMessages);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [documents, setDocuments] = useState<DocumentResponse[]>([]);
@@ -40,6 +44,16 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [isSending, setIsSending] = useState(false);
+
+    const handleUpdateNotebook = async (
+        id: number,
+        name: string,
+        color: string,
+        icon: string,
+    ) => {
+        const updated = await updateNotebook(id, { name, color, icon });
+        setCurrentNotebook((prev) => ({ ...prev, ...updated }));
+    };
 
     // PDF modal viewing state
     const [viewingDoc, setViewingDoc] = useState<DocumentResponse | null>(null);
@@ -180,18 +194,19 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
     return (
         <div className="study-layout">
             <StudySidebar
-                notebook={notebook}
+                notebook={currentNotebook}
                 documents={documents}
                 isLoadingDocs={isLoadingDocs}
                 onAddMaterial={() => setIsUploadOpen(true)}
                 onBack={onBack}
                 onSelectDocument={handleSelectSidebarDoc}
+                onEditNotebook={() => setIsEditModalOpen(true)}
             />
 
             <main className="study-main">
                 <header className="study-main__topbar">
                     <div className="study-main__topbar-info">
-                        <h2>{notebook.name}</h2>
+                        <h2>{currentNotebook.name}</h2>
                         <span className="study-main__source-pill">
                             {documents.length} {documents.length === 1 ? "source" : "sources"}
                         </span>
@@ -271,6 +286,13 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
                         }}
                     />
                 )}
+
+                <EditNotebookModal
+                    notebook={currentNotebook}
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    onSave={handleUpdateNotebook}
+                />
             </main>
         </div>
     );

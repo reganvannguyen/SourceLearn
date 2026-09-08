@@ -10,4 +10,5 @@ class Notebook(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column()
     color: Mapped[str] = mapped_column(default="#aa3bff")
+    icon: Mapped[str] = mapped_column(String(50), default="book")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

@@ -5,6 +5,13 @@ from pydantic import BaseModel, ConfigDict
 class NotebookCreate(BaseModel):
     name: str
     color: str = "#aa3bff"
+    icon: str = "book"
+
+
+class NotebookUpdate(BaseModel):
+    name: str | None = None
+    color: str | None = None
+    icon: str | None = None
 
 
 # Backward-compatible alias
@@ -17,4 +24,5 @@ class NotebookResponse(BaseModel):
     id: int
     name: str
     color: str = "#aa3bff"
+    icon: str = "book"
     created_at: datetime | None = None

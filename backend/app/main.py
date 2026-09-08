@@ -20,6 +20,9 @@ def init_db():
             text("ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS color VARCHAR(50) DEFAULT '#aa3bff'")
         )
         connection.execute(
+            text("ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS icon VARCHAR(50) DEFAULT 'book'")
+        )
+        connection.execute(
             text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_path VARCHAR DEFAULT ''")
         )
         connection.execute(
