@@ -1,3 +1,5 @@
+import { apiFetch } from "./client";
+
 export interface CitationItem {
   chunk_id: number;
   document_id: number;
@@ -18,22 +20,16 @@ export interface MessageResponse {
 export const getNotebookMessages = async (
   notebookId: number,
 ): Promise<MessageResponse[]> => {
-  const response = await fetch(
+  return apiFetch<MessageResponse[]>(
     `http://localhost:8082/notebooks/${notebookId}/messages`,
   );
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch messages (${response.status}).`);
-  }
-
-  return response.json();
 };
 
 export const sendNotebookMessage = async (
   notebookId: number,
   content: string,
 ): Promise<MessageResponse> => {
-  const response = await fetch(
+  return apiFetch<MessageResponse>(
     `http://localhost:8082/notebooks/${notebookId}/messages`,
     {
       method: "POST",
@@ -43,17 +39,4 @@ export const sendNotebookMessage = async (
       body: JSON.stringify({ content }),
     },
   );
-
-  if (!response.ok) {
-    let detail = `Failed to send question (${response.status}).`;
-    try {
-      const err = await response.json();
-      if (err?.detail) detail = err.detail;
-    } catch {
-      // fallback
-    }
-    throw new Error(detail);
-  }
-
-  return response.json();
 };

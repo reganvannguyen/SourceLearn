@@ -164,8 +164,27 @@ def create_notebook_message(
         )
 
     # 6. Generate answer using LLM with context chunks + chat history
-    answer_raw = generate_answer(question_text, chunks, chat_history=chat_history)
-    result = AnswerResponse.model_validate_json(answer_raw)
+    try:
+        answer_raw = generate_answer(question_text, chunks, chat_history=chat_history)
+        result = AnswerResponse.model_validate_json(answer_raw)
+    except Exception as err:
+        db.rollback()
+        err_str = str(err)
+        if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="AI request rate limit reached. Please wait ~30 seconds before asking another question.",
+            )
+        elif "503" in err_str or "UNAVAILABLE" in err_str:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="The AI service is temporarily experiencing high traffic. Please try again shortly.",
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Unable to generate response: {err_str}",
+            )
 
     # 7. Build rich citation items for cited chunk IDs
     chunk_map = {chunk.id: chunk for chunk in chunks}

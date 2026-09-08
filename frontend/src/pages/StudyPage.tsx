@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
     getDocumentsByNotebook,
     uploadDocument,
@@ -38,6 +38,7 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
     const [documents, setDocuments] = useState<DocumentResponse[]>([]);
     const [isLoadingDocs, setIsLoadingDocs] = useState(false);
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [isSending, setIsSending] = useState(false);
 
     // PDF modal viewing state
@@ -47,50 +48,41 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
 
     const chatScrollRef = useRef<HTMLDivElement>(null);
 
-    // On mount or notebook switch: load documents and past messages
-    useEffect(() => {
-        let isMounted = true;
+    const loadData = useCallback(async () => {
+        setIsLoadingDocs(true);
+        setIsLoadingMessages(true);
+        setLoadError(null);
+        try {
+            const [docs, msgs] = await Promise.all([
+                getDocumentsByNotebook(notebook.id),
+                getNotebookMessages(notebook.id),
+            ]);
 
-        const loadData = async () => {
-            setIsLoadingDocs(true);
-            setIsLoadingMessages(true);
-            try {
-                const [docs, msgs] = await Promise.all([
-                    getDocumentsByNotebook(notebook.id),
-                    getNotebookMessages(notebook.id),
-                ]);
-
-                if (isMounted) {
-                    setDocuments(docs);
-                    if (msgs && msgs.length > 0) {
-                        setMessages(
-                            msgs.map((m) => ({
-                                id: m.id,
-                                sender: m.sender,
-                                content: m.content,
-                                citations: m.citations || [],
-                            }))
-                        );
-                    } else {
-                        setMessages(initialMessages);
-                    }
-                }
-            } catch (err) {
-                console.error("Error loading notebook data:", err);
-            } finally {
-                if (isMounted) {
-                    setIsLoadingDocs(false);
-                    setIsLoadingMessages(false);
-                }
+            setDocuments(docs);
+            if (msgs && msgs.length > 0) {
+                setMessages(
+                    msgs.map((m) => ({
+                        id: m.id,
+                        sender: m.sender,
+                        content: m.content,
+                        citations: m.citations || [],
+                    }))
+                );
+            } else {
+                setMessages(initialMessages);
             }
-        };
-
-        loadData();
-
-        return () => {
-            isMounted = false;
-        };
+        } catch (err: any) {
+            console.error("Error loading notebook data:", err);
+            setLoadError(err?.message || "Failed to load study material and conversation.");
+        } finally {
+            setIsLoadingDocs(false);
+            setIsLoadingMessages(false);
+        }
     }, [notebook.id]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
     // Auto-scroll to bottom when messages change
     useEffect(() => {
@@ -100,7 +92,8 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
     }, [messages]);
 
     const handleSend = async (content: string) => {
-        if (isSending || !content.trim()) return;
+        const questionText = content.trim();
+        if (isSending || !questionText) return;
 
         const userTempId = `user-${Date.now()}`;
         const thinkingId = `thinking-${Date.now()}`;
@@ -108,7 +101,7 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
         const userMessage: ChatMessageData = {
             id: userTempId,
             sender: "user",
-            content: content.trim(),
+            content: questionText,
         };
 
         const thinkingMessage: ChatMessageData = {
@@ -122,7 +115,7 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
         setIsSending(true);
 
         try {
-            const assistantResponse = await sendNotebookMessage(notebook.id, content.trim());
+            const assistantResponse = await sendNotebookMessage(notebook.id, questionText);
 
             setMessages((prev) =>
                 prev.map((msg) =>
@@ -138,15 +131,19 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
             );
         } catch (err: any) {
             console.error("Error sending question:", err);
+            const errorMessage =
+                err?.message ||
+                "Unable to get a response from the study assistant. Please try again.";
+
             setMessages((prev) =>
                 prev.map((msg) =>
                     msg.id === thinkingId
                         ? {
                               id: `err-${Date.now()}`,
                               sender: "assistant",
-                              content:
-                                  err?.message ||
-                                  "Failed to get a response from the study assistant. Please try again.",
+                              content: errorMessage,
+                              isError: true,
+                              onRetry: () => handleSend(questionText),
                           }
                         : msg
                 )
@@ -201,6 +198,20 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
                     </div>
                 </header>
 
+                {loadError && (
+                    <div className="study-load-error" role="alert">
+                        <span className="study-load-error__icon">⚠️</span>
+                        <span className="study-load-error__text">{loadError}</span>
+                        <button
+                            type="button"
+                            className="study-load-error__btn"
+                            onClick={loadData}
+                        >
+                            Retry
+                        </button>
+                    </div>
+                )}
+
                 <div
                     ref={chatScrollRef}
                     className="study-chat-scroll"
@@ -222,6 +233,8 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
                                     content={chatMessage.content}
                                     citations={chatMessage.citations}
                                     isThinking={chatMessage.isThinking}
+                                    isError={chatMessage.isError}
+                                    onRetry={chatMessage.onRetry}
                                     onCitationClick={handleCitationClick}
                                 />
                             ))}
