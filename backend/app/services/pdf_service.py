@@ -1,9 +1,13 @@
+from typing import Union
 import fitz
 from fastapi import UploadFile
-#extracting text from pdf and text from image inside pdf
 
-async def extract_pdf(file: UploadFile) -> list[dict]:
-    file_bytes = await file.read()
+# extracting text from pdf and text from image inside pdf
+async def extract_pdf(file: Union[UploadFile, bytes]) -> list[dict]:
+    if isinstance(file, bytes):
+        file_bytes = file
+    else:
+        file_bytes = await file.read()
 
     doc = fitz.open(
         stream=file_bytes,
