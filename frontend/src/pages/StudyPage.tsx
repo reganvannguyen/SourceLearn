@@ -1,20 +1,23 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
+    deleteDocument,
     getDocumentsByNotebook,
     uploadDocument,
     type DocumentResponse,
 } from "../api/documents";
 import {
+    deleteNotebookMessages,
     getNotebookMessages,
     sendNotebookMessage,
     type CitationItem,
 } from "../api/messages";
 import type { Notebook } from "../api/notebooks";
-import { updateNotebook } from "../api/notebooks";
+import { deleteNotebook, updateNotebook } from "../api/notebooks";
 import ChatInput from "../components/ChatInput";
 import ChatMessage, {
     type ChatMessageData,
 } from "../components/ChatMessage";
+import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import EditNotebookModal from "../components/EditNotebookModal";
 import FileUpload from "../components/FileUpload";
 import PdfViewerPane from "../components/PdfViewerPane";
@@ -37,6 +40,12 @@ type StudyPageProps = {
 const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
     const [currentNotebook, setCurrentNotebook] = useState<Notebook>(notebook);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [isDeletingHistory, setIsDeletingHistory] = useState(false);
+    const [docToDelete, setDocToDelete] = useState<DocumentResponse | null>(null);
+    const [isDeletingDoc, setIsDeletingDoc] = useState(false);
+    const [isDeleteNotebookOpen, setIsDeleteNotebookOpen] = useState(false);
+    const [isDeletingNotebook, setIsDeletingNotebook] = useState(false);
     const [messages, setMessages] = useState<ChatMessageData[]>(initialMessages);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [documents, setDocuments] = useState<DocumentResponse[]>([]);
@@ -53,6 +62,60 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
     ) => {
         const updated = await updateNotebook(id, { name, color, icon });
         setCurrentNotebook((prev) => ({ ...prev, ...updated }));
+    };
+
+    const handleDeleteChatHistory = async () => {
+        setIsDeletingHistory(true);
+        try {
+            await deleteNotebookMessages(currentNotebook.id);
+            setMessages(initialMessages);
+            setIsDeleteConfirmOpen(false);
+        } catch (err) {
+            alert(
+                err instanceof Error
+                    ? err.message
+                    : "Failed to delete chat history.",
+            );
+        } finally {
+            setIsDeletingHistory(false);
+        }
+    };
+
+    const handleDeleteNotebook = async () => {
+        setIsDeletingNotebook(true);
+        try {
+            await deleteNotebook(currentNotebook.id);
+            setIsDeleteNotebookOpen(false);
+            onBack?.();
+        } catch (err) {
+            alert(
+                err instanceof Error
+                    ? err.message
+                    : "Failed to delete notebook.",
+            );
+        } finally {
+            setIsDeletingNotebook(false);
+        }
+    };
+
+    const handleConfirmDeleteDocument = async () => {
+        if (!docToDelete) return;
+        setIsDeletingDoc(true);
+        try {
+            await deleteDocument(docToDelete.document_id);
+            setDocuments((prev) => prev.filter((d) => d.document_id !== docToDelete.document_id));
+            if (viewingDoc?.document_id === docToDelete.document_id) {
+                setViewingDoc(null);
+                setViewingPage(undefined);
+                setViewingSnippet(undefined);
+            }
+            setDocToDelete(null);
+        } catch (err: any) {
+            console.error("Error deleting document:", err);
+            alert(err?.message || "Failed to remove document. Please try again.");
+        } finally {
+            setIsDeletingDoc(false);
+        }
     };
 
     // PDF modal viewing state
@@ -186,9 +249,15 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
     };
 
     const handleSelectSidebarDoc = (doc: DocumentResponse) => {
-        setViewingPage(undefined);
-        setViewingSnippet(undefined);
-        setViewingDoc(doc);
+        if (viewingDoc?.document_id === doc.document_id) {
+            setViewingDoc(null);
+            setViewingPage(undefined);
+            setViewingSnippet(undefined);
+        } else {
+            setViewingPage(undefined);
+            setViewingSnippet(undefined);
+            setViewingDoc(doc);
+        }
     };
 
     const notebookColor = currentNotebook.color || "#7eaed7";
@@ -201,11 +270,15 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
             <StudySidebar
                 notebook={currentNotebook}
                 documents={documents}
+                activeDocumentId={viewingDoc?.document_id}
                 isLoadingDocs={isLoadingDocs}
                 onAddMaterial={() => setIsUploadOpen(true)}
                 onBack={onBack}
                 onSelectDocument={handleSelectSidebarDoc}
                 onEditNotebook={() => setIsEditModalOpen(true)}
+                onDeleteChatHistory={() => setIsDeleteConfirmOpen(true)}
+                onDeleteDocument={(doc) => setDocToDelete(doc)}
+                onDeleteNotebook={() => setIsDeleteNotebookOpen(true)}
             />
 
             <main className="study-main">
@@ -308,6 +381,40 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
                     isOpen={isEditModalOpen}
                     onClose={() => setIsEditModalOpen(false)}
                     onSave={handleUpdateNotebook}
+                />
+
+                <ConfirmDeleteModal
+                    isOpen={isDeleteConfirmOpen}
+                    isDeleting={isDeletingHistory}
+                    onConfirm={handleDeleteChatHistory}
+                    onClose={() => {
+                        if (!isDeletingHistory) setIsDeleteConfirmOpen(false);
+                    }}
+                />
+
+                <ConfirmDeleteModal
+                    isOpen={!!docToDelete}
+                    isDeleting={isDeletingDoc}
+                    title="Remove Document?"
+                    description={`Are you sure you want to remove "${docToDelete?.file_name}" from this notebook? All indexed vector embeddings and document chunks will be permanently removed from the database.`}
+                    confirmLabel="Remove Document"
+                    onConfirm={handleConfirmDeleteDocument}
+                    onClose={() => {
+                        if (!isDeletingDoc) setDocToDelete(null);
+                    }}
+                />
+
+                <ConfirmDeleteModal
+                    isOpen={isDeleteNotebookOpen}
+                    isDeleting={isDeletingNotebook}
+                    title="Delete Notebook?"
+                    description={`Are you sure you want to delete "${currentNotebook.name}"? This action cannot be undone.`}
+                    notice="All uploaded study materials, PDF files, generated vector embeddings, and chat history will be permanently deleted."
+                    confirmLabel="Delete Notebook"
+                    onConfirm={handleDeleteNotebook}
+                    onClose={() => {
+                        if (!isDeletingNotebook) setIsDeleteNotebookOpen(false);
+                    }}
                 />
             </main>
         </div>

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import {
   createNotebook,
+  deleteNotebook,
   getNotebooks,
   updateNotebook,
   type Notebook,
 } from "../api/notebooks";
+import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import CreateNotebookModal from "../components/CreateNotebookModal";
 import EditNotebookModal from "../components/EditNotebookModal";
 import NotebookCard from "../components/NotebookCard";
@@ -20,6 +22,8 @@ const NotebooksPage = ({ onSelectNotebook }: NotebooksPageProps) => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNotebook, setEditingNotebook] = useState<Notebook | null>(null);
+  const [deletingNotebook, setDeletingNotebook] = useState<Notebook | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchNotebooks = async () => {
     setIsLoading(true);
@@ -52,10 +56,25 @@ const NotebooksPage = ({ onSelectNotebook }: NotebooksPageProps) => {
     color: string,
     icon: string,
   ) => {
-    const updated = await updateNotebook(id, { name, color, icon });
+    await updateNotebook(id, { name, color, icon });
     setNotebooks((prev) =>
-      prev.map((nb) => (nb.id === id ? { ...nb, ...updated } : nb)),
+      prev.map((nb) => (nb.id === id ? { ...nb, name, color, icon } : nb)),
     );
+    setEditingNotebook(null);
+  };
+
+  const handleDeleteNotebook = async () => {
+    if (!deletingNotebook) return;
+    setIsDeleting(true);
+    try {
+      await deleteNotebook(deletingNotebook.id);
+      setNotebooks((prev) => prev.filter((nb) => nb.id !== deletingNotebook.id));
+      setDeletingNotebook(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete notebook.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -116,6 +135,7 @@ const NotebooksPage = ({ onSelectNotebook }: NotebooksPageProps) => {
                     notebook={nb}
                     onClick={() => onSelectNotebook(nb)}
                     onEdit={(nbToEdit) => setEditingNotebook(nbToEdit)}
+                    onDelete={(nbToDelete) => setDeletingNotebook(nbToDelete)}
                   />
                 ))}
               </div>
@@ -177,6 +197,19 @@ const NotebooksPage = ({ onSelectNotebook }: NotebooksPageProps) => {
         isOpen={!!editingNotebook}
         onClose={() => setEditingNotebook(null)}
         onSave={handleUpdateNotebook}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={!!deletingNotebook}
+        isDeleting={isDeleting}
+        title="Delete Notebook?"
+        description={`Are you sure you want to delete "${deletingNotebook?.name}"? This action cannot be undone.`}
+        notice="All uploaded study materials, PDF files, generated vector embeddings, and chat history will be permanently deleted."
+        confirmLabel="Delete Notebook"
+        onConfirm={handleDeleteNotebook}
+        onClose={() => {
+          if (!isDeleting) setDeletingNotebook(null);
+        }}
       />
     </main>
   );

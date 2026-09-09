@@ -13,11 +13,14 @@ api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     raise RuntimeError("GEMINI_API_KEY is not configured")
 
-client = genai.Client(api_key=api_key)
+client = genai.Client(
+    api_key=api_key,
+    http_options={"timeout": 30000},  # 30-second network timeout
+)
 
 
 def _call_with_retry(fn, max_retries: int = 3, initial_delay: float = 1.0):
-    """Executes a Gemini API call with exponential backoff on temporary 503/429 errors."""
+    """Executes a Gemini API call with exponential backoff on temporary 503/429/timeout errors."""
     delay = initial_delay
     last_err = None
     for attempt in range(max_retries):
@@ -26,7 +29,13 @@ def _call_with_retry(fn, max_retries: int = 3, initial_delay: float = 1.0):
         except Exception as e:
             last_err = e
             err_str = str(e)
-            if "503" in err_str or "429" in err_str or "UNAVAILABLE" in err_str:
+            if (
+                "503" in err_str
+                or "429" in err_str
+                or "UNAVAILABLE" in err_str
+                or "timed out" in err_str.lower()
+                or "timeout" in err_str.lower()
+            ):
                 print(f"Gemini API temporary issue ({e}). Retrying in {delay}s (attempt {attempt + 1}/{max_retries})...")
                 time.sleep(delay)
                 delay *= 1.5
@@ -85,8 +94,7 @@ def condense_query(question: str, chat_history: Optional[List[dict]] = None) -> 
     
     Optimizations:
     1. Skips the LLM call entirely if the question is self-contained (saves API quota).
-    2. Uses 'gemini-3.5-flash-lite' (separate quota bucket from gemini-3.8-flash) to prevent
-       exhausting the main answer model's quota.
+    2. Uses 'gemini-2.5-flash' with strict 30s timeout to prevent hanging.
     """
     if not chat_history:
         return question
@@ -123,7 +131,7 @@ Standalone Query:"""
     try:
         def call_gemini():
             return client.models.generate_content(
-                model="gemini-3.5-flash-lite",
+                model="gemini-2.5-flash",
                 contents=prompt,
             )
 
@@ -131,7 +139,7 @@ Standalone Query:"""
         condensed = response.text.strip()
         return condensed if condensed else question
     except Exception as e:
-        print(f"Error in condense_query with gemini-3.5-flash-lite: {e}. Falling back to original question.")
+        print(f"Error in condense_query: {e}. Falling back to original question.")
         return question
 
 
@@ -182,7 +190,7 @@ Question:
 
         def call_generate():
             return client.models.generate_content(
-                model="gemini-3.8-flash",
+                model="gemini-2.5-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",

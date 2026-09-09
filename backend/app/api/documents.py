@@ -4,7 +4,7 @@ import uuid
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.document import Document
@@ -141,3 +141,32 @@ async def upload_document(
         if saved_path.exists():
             saved_path.unlink(missing_ok=True)
         raise
+
+
+@router.delete("/documents/{document_id}", status_code=200)
+def delete_document(document_id: int, db: Session = Depends(get_db)):
+    doc = db.get(Document, document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Delete vector embeddings / chunks
+    chunk_stmt = delete(DocumentChunk).where(DocumentChunk.document_id == document_id)
+    chunk_res = db.execute(chunk_stmt)
+    deleted_chunks = chunk_res.rowcount
+
+    # Delete file from uploads directory if exists
+    if doc.file_path:
+        saved_file = Path(doc.file_path)
+        if saved_file.exists():
+            saved_file.unlink(missing_ok=True)
+
+    # Delete document record
+    doc_stmt = delete(Document).where(Document.id == document_id)
+    db.execute(doc_stmt)
+    db.commit()
+
+    return {
+        "success": True,
+        "deleted_chunks": deleted_chunks,
+    }
+

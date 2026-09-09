@@ -90,6 +90,13 @@ export const EditNotebookModal = ({
     >
       <div
         className="modal-container modal-container--sm"
+        style={
+          {
+            "--modal-accent": selectedColor,
+            "--modal-accent-bg": `color-mix(in srgb, ${selectedColor} 16%, transparent)`,
+            "--modal-accent-border": `color-mix(in srgb, ${selectedColor} 60%, transparent)`,
+          } as React.CSSProperties
+        }
         onClick={(e) => e.stopPropagation()}
       >
         <header className="modal-header">
@@ -143,7 +150,7 @@ export const EditNotebookModal = ({
 
                 {/* Hilroy Center Emblem in Preview */}
                 <div className="notebook-card__emblem">
-                  <NotebookIcon icon={selectedIcon} size={56} />
+                  <NotebookIcon icon={selectedIcon} size={76} />
                 </div>
 
                 <div className="notebook-card__content">

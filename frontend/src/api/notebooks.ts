@@ -44,3 +44,14 @@ export const updateNotebook = async (
     body: JSON.stringify(data),
   });
 };
+
+export const deleteNotebook = async (
+  id: number,
+): Promise<{ success: boolean; deleted_notebook_id: number }> => {
+  return apiFetch<{ success: boolean; deleted_notebook_id: number }>(
+    `http://localhost:8082/notebooks/${id}`,
+    {
+      method: "DELETE",
+    },
+  );
+};
