@@ -148,7 +148,7 @@ const NotebookCard = ({ notebook, onClick, onEdit }: NotebookCardProps) => {
 
       {/* Hilroy Center Emblem (where the Canada map was on original) */}
       <div className="notebook-card__emblem">
-        <NotebookIcon icon={notebook.icon || "book"} size={52} />
+        <NotebookIcon icon={notebook.icon || "book"} size={70} />
       </div>
 
       {/* Hilroy Exercise Booklet Cover Typography */}

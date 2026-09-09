@@ -85,7 +85,21 @@ const renderContentWithCitations = (
               onClick={() => onCitationClick?.(cite)}
               title={`View in ${cite.file_name} (Page ${cite.page_number}):\n"${cite.snippet}"`}
             >
-              <span className="chat-inline-citation__icon">📄</span>
+              <svg
+                className="chat-inline-citation__icon"
+                viewBox="0 0 24 24"
+                width="11"
+                height="11"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
               <span className="chat-inline-citation__page">
                 p. {cite.page_number}
               </span>
@@ -128,7 +142,21 @@ const ChatMessage = ({
       >
         <div className="chat-message__header">
           <span className="chat-message__avatar" aria-hidden="true">
-            ⚠️
+            <svg
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
           </span>
           <p className="chat-message__sender">Notice</p>
         </div>
@@ -170,7 +198,36 @@ const ChatMessage = ({
     >
       <div className="chat-message__header">
         <span className="chat-message__avatar" aria-hidden="true">
-          {isUserMessage ? "👤" : "✨"}
+          {isUserMessage ? (
+            <svg
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          ) : (
+            <svg
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z" />
+            </svg>
+          )}
         </span>
         <p className="chat-message__sender">
           {isUserMessage ? "You" : "Assistant"}

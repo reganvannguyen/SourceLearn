@@ -30,6 +30,16 @@ export const getDocumentsByNotebook = async (
   );
 };
 
-export const getDocumentFileUrl = (documentId: number): string => {
-  return `http://localhost:8082/documents/${documentId}/file`;
+export const getDocumentFileUrl = (
+  documentId: number,
+  page?: number,
+  snippet?: string,
+  color?: string,
+): string => {
+  const url = new URL(`http://localhost:8082/documents/${documentId}/file`);
+  if (page) url.searchParams.set("page", page.toString());
+  if (snippet) url.searchParams.set("snippet", snippet);
+  if (color) url.searchParams.set("color", color);
+  return url.toString();
 };
+

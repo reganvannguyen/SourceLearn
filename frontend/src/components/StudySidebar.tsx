@@ -24,7 +24,11 @@ const StudySidebar = ({
   const color = notebook.color || "#7eaed7";
 
   return (
-    <aside className="study-sidebar" aria-label="Study notebook sidebar">
+    <aside
+      className="study-sidebar"
+      style={{ "--notebook-color": color } as React.CSSProperties}
+      aria-label="Study notebook sidebar"
+    >
       {/* Top Navigation */}
       <div className="study-sidebar__top">
         {onBack && (

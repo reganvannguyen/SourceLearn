@@ -149,7 +149,7 @@ export const CreateNotebookModal = ({
 
                 {/* Hilroy Center Emblem in Preview */}
                 <div className="notebook-card__emblem">
-                  <NotebookIcon icon={selectedIcon} size={42} />
+                  <NotebookIcon icon={selectedIcon} size={56} />
                 </div>
 
                 <div className="notebook-card__content">

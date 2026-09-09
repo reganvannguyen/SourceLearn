@@ -8,6 +8,7 @@ import {
 import CreateNotebookModal from "../components/CreateNotebookModal";
 import EditNotebookModal from "../components/EditNotebookModal";
 import NotebookCard from "../components/NotebookCard";
+import { NotebookIcon } from "../components/NotebookIcon";
 
 type NotebooksPageProps = {
   onSelectNotebook: (notebook: Notebook) => void;
@@ -95,7 +96,7 @@ const NotebooksPage = ({ onSelectNotebook }: NotebooksPageProps) => {
             ) : notebooks.length === 0 ? (
               <div className="notebooks-page__empty-state">
                 <div className="notebooks-page__empty-icon" aria-hidden="true">
-                  📚
+                  <NotebookIcon icon="book" size={52} />
                 </div>
                 <h3>No notebooks yet</h3>
                 <p>Create your first notebook to start uploading study materials.</p>
