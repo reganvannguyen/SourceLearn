@@ -4,6 +4,7 @@ type ConfirmDeleteModalProps = {
   isOpen: boolean;
   title?: string;
   description?: string;
+  notice?: string;
   confirmLabel?: string;
   isDeleting?: boolean;
   onConfirm: () => void;
@@ -14,6 +15,7 @@ export const ConfirmDeleteModal = ({
   isOpen,
   title = "Delete Chat History?",
   description = "Are you sure you want to delete all chat history in this notebook? This action cannot be undone and your conversation history cannot be recovered.",
+  notice = "Uploaded study documents and notes will remain intact.",
   confirmLabel = "Delete Chat History",
   isDeleting = false,
   onConfirm,
@@ -91,24 +93,26 @@ export const ConfirmDeleteModal = ({
             <p className="confirm-delete-modal__description">
               {description}
             </p>
-            <div className="confirm-delete-modal__notice">
-              <svg
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="16" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12.01" y2="8" />
-              </svg>
-              <span>Uploaded study documents and notes will remain intact.</span>
-            </div>
+            {notice && (
+              <div className="confirm-delete-modal__notice">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <span>{notice}</span>
+              </div>
+            )}
           </div>
         </div>
 

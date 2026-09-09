@@ -1,7 +1,11 @@
+from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from app.db.database import get_db
+from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
+from app.models.message import Message
 from app.models.notebook import Notebook
 from app.schemas.notebook import NotebookCreate, NotebookResponse, NotebookUpdate
 
@@ -49,4 +53,47 @@ def update_notebook(
     db.commit()
     db.refresh(notebook)
     return notebook
+
+
+@router.delete("/{notebook_id}", status_code=200)
+def delete_notebook(notebook_id: int, db: Session = Depends(get_db)):
+    notebook = db.get(Notebook, notebook_id)
+    if not notebook:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+
+    # 1. Fetch all documents belonging to this notebook
+    docs_stmt = select(Document).where(Document.notebook_id == notebook_id)
+    documents = db.scalars(docs_stmt).all()
+    doc_ids = [doc.id for doc in documents]
+
+    # 2. Delete all DocumentChunk vector embeddings
+    if doc_ids:
+        chunk_stmt = delete(DocumentChunk).where(DocumentChunk.document_id.in_(doc_ids))
+        db.execute(chunk_stmt)
+
+    # 3. Clean up physical PDF files from disk
+    for doc in documents:
+        if doc.file_path:
+            saved_file = Path(doc.file_path)
+            if saved_file.exists():
+                saved_file.unlink(missing_ok=True)
+
+    # 4. Delete document records
+    if doc_ids:
+        doc_stmt = delete(Document).where(Document.id.in_(doc_ids))
+        db.execute(doc_stmt)
+
+    # 5. Delete conversation history / messages
+    msg_stmt = delete(Message).where(Message.notebook_id == notebook_id)
+    db.execute(msg_stmt)
+
+    # 6. Delete the notebook record itself
+    db.delete(notebook)
+    db.commit()
+
+    return {
+        "success": True,
+        "deleted_notebook_id": notebook_id,
+        "deleted_documents": len(doc_ids),
+    }
 

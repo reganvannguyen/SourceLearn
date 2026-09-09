@@ -12,7 +12,7 @@ import {
     type CitationItem,
 } from "../api/messages";
 import type { Notebook } from "../api/notebooks";
-import { updateNotebook } from "../api/notebooks";
+import { deleteNotebook, updateNotebook } from "../api/notebooks";
 import ChatInput from "../components/ChatInput";
 import ChatMessage, {
     type ChatMessageData,
@@ -44,6 +44,8 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
     const [isDeletingHistory, setIsDeletingHistory] = useState(false);
     const [docToDelete, setDocToDelete] = useState<DocumentResponse | null>(null);
     const [isDeletingDoc, setIsDeletingDoc] = useState(false);
+    const [isDeleteNotebookOpen, setIsDeleteNotebookOpen] = useState(false);
+    const [isDeletingNotebook, setIsDeletingNotebook] = useState(false);
     const [messages, setMessages] = useState<ChatMessageData[]>(initialMessages);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [documents, setDocuments] = useState<DocumentResponse[]>([]);
@@ -68,11 +70,31 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
             await deleteNotebookMessages(currentNotebook.id);
             setMessages(initialMessages);
             setIsDeleteConfirmOpen(false);
-        } catch (err: any) {
-            console.error("Error deleting chat history:", err);
-            alert(err?.message || "Failed to delete chat history. Please try again.");
+        } catch (err) {
+            alert(
+                err instanceof Error
+                    ? err.message
+                    : "Failed to delete chat history.",
+            );
         } finally {
             setIsDeletingHistory(false);
+        }
+    };
+
+    const handleDeleteNotebook = async () => {
+        setIsDeletingNotebook(true);
+        try {
+            await deleteNotebook(currentNotebook.id);
+            setIsDeleteNotebookOpen(false);
+            onBack?.();
+        } catch (err) {
+            alert(
+                err instanceof Error
+                    ? err.message
+                    : "Failed to delete notebook.",
+            );
+        } finally {
+            setIsDeletingNotebook(false);
         }
     };
 
@@ -256,6 +278,7 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
                 onEditNotebook={() => setIsEditModalOpen(true)}
                 onDeleteChatHistory={() => setIsDeleteConfirmOpen(true)}
                 onDeleteDocument={(doc) => setDocToDelete(doc)}
+                onDeleteNotebook={() => setIsDeleteNotebookOpen(true)}
             />
 
             <main className="study-main">
@@ -378,6 +401,19 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
                     onConfirm={handleConfirmDeleteDocument}
                     onClose={() => {
                         if (!isDeletingDoc) setDocToDelete(null);
+                    }}
+                />
+
+                <ConfirmDeleteModal
+                    isOpen={isDeleteNotebookOpen}
+                    isDeleting={isDeletingNotebook}
+                    title="Delete Notebook?"
+                    description={`Are you sure you want to delete "${currentNotebook.name}"? This action cannot be undone.`}
+                    notice="All uploaded study materials, PDF files, generated vector embeddings, and chat history will be permanently deleted."
+                    confirmLabel="Delete Notebook"
+                    onConfirm={handleDeleteNotebook}
+                    onClose={() => {
+                        if (!isDeletingNotebook) setIsDeleteNotebookOpen(false);
                     }}
                 />
             </main>

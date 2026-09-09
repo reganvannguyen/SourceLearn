@@ -7,10 +7,11 @@ type NotebookCardProps = {
   notebook: Notebook;
   onClick: () => void;
   onEdit?: (notebook: Notebook) => void;
+  onDelete?: (notebook: Notebook) => void;
 };
 
 
-const NotebookCard = ({ notebook, onClick, onEdit }: NotebookCardProps) => {
+const NotebookCard = ({ notebook, onClick, onEdit, onDelete }: NotebookCardProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const color = notebook.color || "#7eaed7";
@@ -140,6 +141,38 @@ const NotebookCard = ({ notebook, onClick, onEdit }: NotebookCardProps) => {
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
                 Edit Details
+              </button>
+            )}
+
+            {onDelete && (
+              <button
+                type="button"
+                className="notebook-card__menu-item notebook-card__menu-item--danger"
+                role="menuitem"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                  onDelete(notebook);
+                }}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+                Delete Notebook
               </button>
             )}
           </div>
