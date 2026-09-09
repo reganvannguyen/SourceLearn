@@ -1,6 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
@@ -234,3 +234,28 @@ def create_notebook_message(
         citations=citation_items,
         created_at=assistant_message.created_at,
     )
+
+
+@router.delete(
+    "/notebooks/{notebook_id}/messages",
+    status_code=status.HTTP_200_OK,
+)
+def delete_notebook_messages(
+    notebook_id: int,
+    db: Session = Depends(get_db),
+):
+    notebook = db.get(Notebook, notebook_id)
+    if not notebook:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Notebook with id {notebook_id} not found",
+        )
+
+    stmt = delete(Message).where(Message.notebook_id == notebook_id)
+    result = db.execute(stmt)
+    db.commit()
+
+    return {
+        "success": True,
+        "deleted_count": result.rowcount,
+    }

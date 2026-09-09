@@ -9,8 +9,14 @@ export async function apiFetch<T>(
   let response: Response;
 
   try {
-    response = await fetch(url, options);
+    const signal = options?.signal || AbortSignal.timeout(45000);
+    response = await fetch(url, { ...options, signal });
   } catch (networkErr: any) {
+    if (networkErr?.name === "TimeoutError" || networkErr?.name === "AbortError") {
+      throw new Error(
+        "Request timed out. The server or AI model took too long to respond. Please try again.",
+      );
+    }
     // Thrown by browser when server is unreachable, connection refused, or network is down
     if (
       networkErr?.name === "TypeError" ||

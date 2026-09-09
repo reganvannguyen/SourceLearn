@@ -43,3 +43,14 @@ export const getDocumentFileUrl = (
   return url.toString();
 };
 
+export const deleteDocument = async (
+  documentId: number,
+): Promise<{ success: boolean; deleted_chunks: number }> => {
+  return apiFetch<{ success: boolean; deleted_chunks: number }>(
+    `http://localhost:8082/documents/${documentId}`,
+    {
+      method: "DELETE",
+    },
+  );
+};
+

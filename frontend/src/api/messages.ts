@@ -40,3 +40,14 @@ export const sendNotebookMessage = async (
     },
   );
 };
+
+export const deleteNotebookMessages = async (
+  notebookId: number,
+): Promise<{ success: boolean; deleted_count: number }> => {
+  return apiFetch<{ success: boolean; deleted_count: number }>(
+    `http://localhost:8082/notebooks/${notebookId}/messages`,
+    {
+      method: "DELETE",
+    },
+  );
+};
