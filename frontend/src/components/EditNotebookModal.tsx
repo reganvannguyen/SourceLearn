@@ -1,29 +1,22 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import type { Notebook } from "../api/notebooks";
+import { NOTEBOOK_COLORS } from "./CreateNotebookModal";
 import { HilroySwoosh } from "./HilroySwoosh";
 import { NOTEBOOK_ICONS, NotebookIcon } from "./NotebookIcon";
 
-export const NOTEBOOK_COLORS = [
-  { label: "Hilroy Sky Blue", value: "#7eaed7" },
-  { label: "Hilroy Canary Yellow", value: "#fdf186" },
-  { label: "Hilroy Mint Green", value: "#94d3af" },
-  { label: "Pastel Coral", value: "#fba284" },
-  { label: "Pastel Lavender", value: "#b8a9db" },
-  { label: "Blush Pink", value: "#f6a5b5" },
-  { label: "Aqua Mist", value: "#86d3d9" },
-  { label: "Slate Grey", value: "#a8b4c2" },
-];
-
-type CreateNotebookModalProps = {
+type EditNotebookModalProps = {
+  notebook: Notebook | null;
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (name: string, color: string, icon: string) => Promise<void>;
+  onSave: (id: number, name: string, color: string, icon: string) => Promise<void>;
 };
 
-export const CreateNotebookModal = ({
+export const EditNotebookModal = ({
+  notebook,
   isOpen,
   onClose,
-  onCreate,
-}: CreateNotebookModalProps) => {
+  onSave,
+}: EditNotebookModalProps) => {
   const [name, setName] = useState("");
   const [selectedColor, setSelectedColor] = useState(NOTEBOOK_COLORS[0].value);
   const [selectedIcon, setSelectedIcon] = useState<string>("book");
@@ -33,21 +26,22 @@ export const CreateNotebookModal = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      setName("");
-      setSelectedColor(NOTEBOOK_COLORS[0].value);
-      setSelectedIcon("book");
+    if (isOpen && notebook) {
+      setName(notebook.name);
+      setSelectedColor(notebook.color || NOTEBOOK_COLORS[0].value);
+      setSelectedIcon(notebook.icon || "book");
       setError(null);
       const prevOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       setTimeout(() => {
         inputRef.current?.focus();
+        inputRef.current?.select();
       }, 50);
       return () => {
         document.body.style.overflow = prevOverflow;
       };
     }
-  }, [isOpen]);
+  }, [isOpen, notebook]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -59,7 +53,7 @@ export const CreateNotebookModal = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, isSubmitting, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !notebook) return null;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -73,11 +67,11 @@ export const CreateNotebookModal = ({
     try {
       setIsSubmitting(true);
       setError(null);
-      await onCreate(trimmed, selectedColor, selectedIcon);
+      await onSave(notebook.id, trimmed, selectedColor, selectedIcon);
       onClose();
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : "Failed to create notebook."
+        err instanceof Error ? err.message : "Failed to update notebook."
       );
     } finally {
       setIsSubmitting(false);
@@ -92,7 +86,7 @@ export const CreateNotebookModal = ({
       }}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="create-notebook-title"
+      aria-labelledby="edit-notebook-title"
     >
       <div
         className="modal-container modal-container--sm"
@@ -100,11 +94,11 @@ export const CreateNotebookModal = ({
       >
         <header className="modal-header">
           <div>
-            <h2 id="create-notebook-title" className="modal-title">
-              Create Notebook
+            <h2 id="edit-notebook-title" className="modal-title">
+              Edit Notebook
             </h2>
             <p className="modal-subtitle">
-              Choose a title, cover color, and emblem icon for your notebook.
+              Update your notebook's title, cover color, and emblem icon.
             </p>
           </div>
           <button
@@ -122,7 +116,7 @@ export const CreateNotebookModal = ({
           <div className="modal-body">
             {/* Live Preview */}
             <div className="notebook-preview">
-              <span className="notebook-preview__label">Preview</span>
+              <span className="notebook-preview__label">Live Preview</span>
               <div
                 className="notebook-card notebook-card--preview"
                 style={
@@ -132,7 +126,7 @@ export const CreateNotebookModal = ({
                   } as React.CSSProperties
                 }
               >
-                <HilroySwoosh id="preview" color={selectedColor} />
+                <HilroySwoosh id={`edit-${notebook.id}`} color={selectedColor} />
                 <div className="notebook-card__menu-btn notebook-card__menu-btn--preview">
                   <svg
                     viewBox="0 0 24 24"
@@ -154,7 +148,7 @@ export const CreateNotebookModal = ({
 
                 <div className="notebook-card__content">
                   <h3 className="notebook-card__exercise-title">
-                    {name.trim() || "Operating System"}
+                    {name.trim() || notebook.name}
                   </h3>
                 </div>
               </div>
@@ -162,12 +156,12 @@ export const CreateNotebookModal = ({
 
             {/* Notebook Name */}
             <div className="modal-field">
-              <label htmlFor="notebook-name-input" className="modal-label">
+              <label htmlFor="edit-notebook-name-input" className="modal-label">
                 Notebook Name
               </label>
               <input
                 ref={inputRef}
-                id="notebook-name-input"
+                id="edit-notebook-name-input"
                 type="text"
                 className="modal-input"
                 placeholder="e.g. Operating Systems, Chemistry 101"
@@ -181,7 +175,11 @@ export const CreateNotebookModal = ({
             {/* Color Swatches */}
             <div className="modal-field">
               <label className="modal-label">Choose a Cover Color</label>
-              <div className="color-swatches" role="radiogroup" aria-label="Notebook color">
+              <div
+                className="color-swatches"
+                role="radiogroup"
+                aria-label="Notebook color"
+              >
                 {NOTEBOOK_COLORS.map((c) => (
                   <button
                     key={c.value}
@@ -241,7 +239,7 @@ export const CreateNotebookModal = ({
               className="modal-btn modal-btn--primary"
               disabled={!name.trim() || isSubmitting}
             >
-              {isSubmitting ? "Creating…" : "Create Notebook"}
+              {isSubmitting ? "Saving…" : "Save Changes"}
             </button>
           </footer>
         </form>
@@ -250,4 +248,4 @@ export const CreateNotebookModal = ({
   );
 };
 
-export default CreateNotebookModal;
+export default EditNotebookModal;

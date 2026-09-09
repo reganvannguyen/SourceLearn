@@ -1,8 +1,9 @@
 from pathlib import Path
 import re
 import uuid
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.db.database import get_db
@@ -12,7 +13,7 @@ from app.models.notebook import Notebook
 from app.schemas.document import DocumentResponse
 from app.services.chunking_service import chunk_pages
 from app.services.embedding_service import embed_chunks
-from app.services.pdf_service import extract_pdf
+from app.services.pdf_service import extract_pdf, highlight_pdf_snippet
 
 router = APIRouter(tags=["documents"])
 
@@ -40,13 +41,40 @@ def get_documents(notebook_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/documents/{document_id}/file")
-def get_document_file(document_id: int, db: Session = Depends(get_db)):
+def get_document_file(
+    document_id: int,
+    page: Optional[int] = None,
+    snippet: Optional[str] = None,
+    color: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
     document = db.get(Document, document_id)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
     if not document.file_path or not Path(document.file_path).exists():
         raise HTTPException(status_code=404, detail="PDF file content not found on server")
+
+    # If page and snippet are provided, dynamically highlight and stream PDF in memory
+    if page and snippet and snippet.strip():
+        try:
+            highlighted_bytes = highlight_pdf_snippet(
+                file_path=document.file_path,
+                page_number=page,
+                snippet=snippet,
+                color_hex=color or "#fde047",
+            )
+            return Response(
+                content=highlighted_bytes,
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": f'inline; filename="{document.file_name}"',
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                },
+            )
+        except Exception as e:
+            # Fall back to raw file if highlighting fails
+            print(f"Highlighting failed, falling back to original file: {e}")
 
     return FileResponse(
         path=document.file_path,

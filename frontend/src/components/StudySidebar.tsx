@@ -1,5 +1,6 @@
 import type { DocumentResponse } from "../api/documents";
 import type { Notebook } from "../api/notebooks";
+import { NotebookIcon } from "./NotebookIcon";
 
 type StudySidebarProps = {
   notebook: Notebook;
@@ -8,6 +9,7 @@ type StudySidebarProps = {
   onAddMaterial: () => void;
   onBack?: () => void;
   onSelectDocument?: (doc: DocumentResponse) => void;
+  onEditNotebook?: () => void;
 };
 
 const StudySidebar = ({
@@ -17,11 +19,16 @@ const StudySidebar = ({
   onAddMaterial,
   onBack,
   onSelectDocument,
+  onEditNotebook,
 }: StudySidebarProps) => {
-  const color = notebook.color || "#aa3bff";
+  const color = notebook.color || "#7eaed7";
 
   return (
-    <aside className="study-sidebar" aria-label="Study notebook sidebar">
+    <aside
+      className="study-sidebar"
+      style={{ "--notebook-color": color } as React.CSSProperties}
+      aria-label="Study notebook sidebar"
+    >
       {/* Top Navigation */}
       <div className="study-sidebar__top">
         {onBack && (
@@ -57,18 +64,7 @@ const StudySidebar = ({
             }}
             aria-hidden="true"
           >
-            <svg
-              viewBox="0 0 24 24"
-              width="20"
-              height="20"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
-              <path d="M6 6h10" />
-              <path d="M6 10h10" />
-            </svg>
+            <NotebookIcon icon={notebook.icon || "book"} size={20} />
           </div>
           <div className="study-sidebar__notebook-text">
             <span className="study-sidebar__badge">Notebook</span>
@@ -76,6 +72,30 @@ const StudySidebar = ({
               {notebook.name}
             </h2>
           </div>
+          {onEditNotebook && (
+            <button
+              type="button"
+              className="study-sidebar__edit-btn"
+              onClick={onEditNotebook}
+              aria-label="Edit notebook title and color"
+              title="Edit notebook"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 

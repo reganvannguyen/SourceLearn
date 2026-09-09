@@ -10,12 +10,14 @@ import {
     type CitationItem,
 } from "../api/messages";
 import type { Notebook } from "../api/notebooks";
+import { updateNotebook } from "../api/notebooks";
 import ChatInput from "../components/ChatInput";
 import ChatMessage, {
     type ChatMessageData,
 } from "../components/ChatMessage";
+import EditNotebookModal from "../components/EditNotebookModal";
 import FileUpload from "../components/FileUpload";
-import PdfViewerModal from "../components/PdfViewerModal";
+import PdfViewerPane from "../components/PdfViewerPane";
 import StudySidebar from "../components/StudySidebar";
 
 const initialMessages: ChatMessageData[] = [
@@ -33,6 +35,8 @@ type StudyPageProps = {
 };
 
 const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
+    const [currentNotebook, setCurrentNotebook] = useState<Notebook>(notebook);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessageData[]>(initialMessages);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [documents, setDocuments] = useState<DocumentResponse[]>([]);
@@ -40,6 +44,16 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [isSending, setIsSending] = useState(false);
+
+    const handleUpdateNotebook = async (
+        id: number,
+        name: string,
+        color: string,
+        icon: string,
+    ) => {
+        const updated = await updateNotebook(id, { name, color, icon });
+        setCurrentNotebook((prev) => ({ ...prev, ...updated }));
+    };
 
     // PDF modal viewing state
     const [viewingDoc, setViewingDoc] = useState<DocumentResponse | null>(null);
@@ -177,30 +191,43 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
         setViewingDoc(doc);
     };
 
+    const notebookColor = currentNotebook.color || "#7eaed7";
+
     return (
-        <div className="study-layout">
+        <div
+            className="study-layout"
+            style={{ "--notebook-color": notebookColor } as React.CSSProperties}
+        >
             <StudySidebar
-                notebook={notebook}
+                notebook={currentNotebook}
                 documents={documents}
                 isLoadingDocs={isLoadingDocs}
                 onAddMaterial={() => setIsUploadOpen(true)}
                 onBack={onBack}
                 onSelectDocument={handleSelectSidebarDoc}
+                onEditNotebook={() => setIsEditModalOpen(true)}
             />
 
             <main className="study-main">
-                <header className="study-main__topbar">
-                    <div className="study-main__topbar-info">
-                        <h2>{notebook.name}</h2>
-                        <span className="study-main__source-pill">
-                            {documents.length} {documents.length === 1 ? "source" : "sources"}
-                        </span>
-                    </div>
-                </header>
-
                 {loadError && (
                     <div className="study-load-error" role="alert">
-                        <span className="study-load-error__icon">⚠️</span>
+                        <span className="study-load-error__icon">
+                            <svg
+                                viewBox="0 0 24 24"
+                                width="16"
+                                height="16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                            >
+                                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                                <line x1="12" y1="9" x2="12" y2="13" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                        </span>
                         <span className="study-load-error__text">{loadError}</span>
                         <button
                             type="button"
@@ -212,42 +239,59 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
                     </div>
                 )}
 
-                <div
-                    ref={chatScrollRef}
-                    className="study-chat-scroll"
-                    role="log"
-                    aria-live="polite"
-                    aria-label="Conversation"
-                >
-                    {isLoadingMessages ? (
-                        <div className="study-chat-loading">
-                            <div className="pdf-modal-spinner" />
-                            <span>Loading conversation history…</span>
-                        </div>
-                    ) : (
-                        <div className="study-chat-messages">
-                            {messages.map((chatMessage) => (
-                                <ChatMessage
-                                    key={chatMessage.id}
-                                    sender={chatMessage.sender}
-                                    content={chatMessage.content}
-                                    citations={chatMessage.citations}
-                                    isThinking={chatMessage.isThinking}
-                                    isError={chatMessage.isError}
-                                    onRetry={chatMessage.onRetry}
-                                    onCitationClick={handleCitationClick}
-                                />
-                            ))}
+                <div className={`study-workspace ${viewingDoc ? "study-workspace--split" : ""}`}>
+                    {viewingDoc && (
+                        <div className="study-workspace__pdf-pane">
+                            <PdfViewerPane
+                                document={viewingDoc}
+                                initialPage={viewingPage}
+                                citedSnippet={viewingSnippet}
+                                highlightColor={notebookColor}
+                                onClose={() => {
+                                    setViewingDoc(null);
+                                    setViewingPage(undefined);
+                                    setViewingSnippet(undefined);
+                                }}
+                            />
                         </div>
                     )}
-                </div>
 
-                <div className="study-chat-bottom">
-                    <div className="study-chat-input-wrapper">
-                        <ChatInput onSend={handleSend} disabled={isSending} />
-                        <p className="study-chat-hint">
-                            Responses are referenced directly from your uploaded materials with verifiable citations.
-                        </p>
+                    <div className="study-workspace__chat-pane">
+                        <div
+                            ref={chatScrollRef}
+                            className="study-chat-scroll"
+                            role="log"
+                            aria-live="polite"
+                            aria-label="Conversation"
+                        >
+                            {isLoadingMessages ? (
+                                <div className="study-chat-loading">
+                                    <div className="pdf-modal-spinner" />
+                                    <span>Loading conversation history…</span>
+                                </div>
+                            ) : (
+                                <div className="study-chat-messages">
+                                    {messages.map((chatMessage) => (
+                                        <ChatMessage
+                                            key={chatMessage.id}
+                                            sender={chatMessage.sender}
+                                            content={chatMessage.content}
+                                            citations={chatMessage.citations}
+                                            isThinking={chatMessage.isThinking}
+                                            isError={chatMessage.isError}
+                                            onRetry={chatMessage.onRetry}
+                                            onCitationClick={handleCitationClick}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="study-chat-bottom">
+                            <div className="study-chat-input-wrapper">
+                                <ChatInput onSend={handleSend} disabled={isSending} />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -259,18 +303,12 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
                     />
                 )}
 
-                {viewingDoc && (
-                    <PdfViewerModal
-                        document={viewingDoc}
-                        initialPage={viewingPage}
-                        citedSnippet={viewingSnippet}
-                        onClose={() => {
-                            setViewingDoc(null);
-                            setViewingPage(undefined);
-                            setViewingSnippet(undefined);
-                        }}
-                    />
-                )}
+                <EditNotebookModal
+                    notebook={currentNotebook}
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    onSave={handleUpdateNotebook}
+                />
             </main>
         </div>
     );
