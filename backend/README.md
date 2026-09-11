@@ -1,0 +1,53 @@
+# SourceLearn Backend
+
+The backend for SourceLearn is an asynchronous **FastAPI** service coordinating document ingestion, text chunking, vector embedding generation, pgvector similarity search, and conversational LLM response generation with Google Gemini 2.5 Flash.
+
+---
+
+## Tech Stack
+- **Framework**: FastAPI (Python 3.11+)
+- **Database**: PostgreSQL with `pgvector`
+- **ORM / Engine**: SQLAlchemy 2.0 with `psycopg3`
+- **PDF Extraction**: PyMuPDF (`fitz`)
+- **Text Chunking**: LangChain `RecursiveCharacterTextSplitter`
+- **Vector Embeddings & LLM**: Google Gemini 2.5 Flash (`google-genai`)
+- **Data Validation**: Pydantic v2
+
+---
+
+## Directory Structure
+```
+backend/
+├── app/
+│   ├── api/             # REST Route handlers
+│   │   ├── notebooks.py # Notebook CRUD
+│   │   ├── documents.py # PDF upload, streaming, delete
+│   │   └── messages.py  # Chat history, RAG synthesis
+│   ├── db/              # Database engine & session maker
+│   ├── models/          # SQLAlchemy ORM models
+│   ├── schemas/         # Pydantic request/response models
+│   ├── services/        # Business logic & AI pipelines
+│   │   ├── pdf_service.py        # PyMuPDF text extraction
+│   │   ├── chunking_service.py   # Recursive text chunking
+│   │   ├── embedding_service.py  # Vector generation
+│   │   ├── retrieval_service.py  # Cosine similarity search
+│   │   └── llm_service.py        # Query condensation & answer synthesis
+│   └── main.py          # FastAPI application entrypoint
+├── docker-compose.yml   # PostgreSQL + pgvector container definition
+├── requirements.txt     # Python package dependencies
+└── .env.example         # Environment template
+```
+
+---
+
+## Local Development
+Refer to the [Root Setup Guide](../docs/setup-guide.md) for full instructions.
+
+```bash
+# Start Database
+docker compose up -d
+
+# Start Server
+uvicorn app.main:app --host 0.0.0.0 --port 8082 --reload
+```
+Interactive documentation is available at `http://localhost:8082/docs`.
