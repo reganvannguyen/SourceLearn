@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Compile interactive screenshots into a polished, recruiter-ready animated demo GIF/WebP and static assets.
+Compile interactive screenshots into a polished, 16:9 widescreen demo GIF/WebP with zero distortion.
 """
 import os
 import shutil
@@ -17,7 +17,7 @@ def add_header_banner(image_path: str, caption: str, step_label: str) -> Image.I
     draw = ImageDraw.Draw(overlay)
     
     # Sleek dark header bar at the top
-    bar_height = 54
+    bar_height = 50
     draw.rectangle([(0, 0), (width, bar_height)], fill=(15, 23, 42, 245)) # Slate 900
     draw.rectangle([(0, bar_height - 2), (width, bar_height)], fill=(116, 193, 201, 255)) # Teal accent line
     
@@ -28,11 +28,11 @@ def add_header_banner(image_path: str, caption: str, step_label: str) -> Image.I
         font_tag = font_text = ImageFont.load_default()
         
     # Draw step badge
-    draw.rounded_rectangle([(20, 10), (130, 42)], radius=4, fill=(116, 193, 201, 255))
-    draw.text((28, 17), step_label, fill=(15, 23, 42, 255), font=font_tag)
+    draw.rounded_rectangle([(18, 9), (124, 39)], radius=4, fill=(116, 193, 201, 255))
+    draw.text((26, 15), step_label, fill=(15, 23, 42, 255), font=font_tag)
     
     # Draw caption
-    draw.text((145, 17), caption, fill=(248, 250, 252, 255), font=font_text)
+    draw.text((138, 15), caption, fill=(248, 250, 252, 255), font=font_text)
     
     composed = Image.alpha_composite(img.convert("RGBA"), overlay)
     return composed.convert("RGB")
@@ -78,16 +78,20 @@ def main():
     ]
 
     processed_frames = []
+    # Exact 16:9 resolution: 1024 x 576 (1024 / 576 = 1.7777778 = 16/9)
+    TARGET_WIDTH = 1024
+    TARGET_HEIGHT = 576
+
     for s in steps:
         if not os.path.exists(s["file"]):
             print(f"Warning: {s['file']} not found!")
             continue
         banner_frame = add_header_banner(s["file"], s["caption"], s["step"])
-        # Resize to standard high-clarity 1024x640 frame
-        resized = banner_frame.resize((1024, 640), Image.Resampling.LANCZOS)
+        # Downscale proportionally maintaining exact 16:9
+        resized = banner_frame.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
         processed_frames.append(resized)
 
-    # Save static showcase PNGs
+    # Save static showcase PNGs at original 1280x720 (16:9)
     if os.path.exists(steps[0]["file"]):
         shutil.copy(steps[0]["file"], os.path.join(ASSETS_DIR, "dashboard.png"))
     if os.path.exists(steps[1]["file"]):
@@ -102,7 +106,7 @@ def main():
     gif_out = os.path.join(ASSETS_DIR, "demo.gif")
     webp_out = os.path.join(ASSETS_DIR, "demo.webp")
 
-    print(f"Compiling animated GIF to {gif_out} ({len(processed_frames)} frames)...")
+    print(f"Compiling animated 16:9 GIF to {gif_out} ({len(processed_frames)} frames @ {TARGET_WIDTH}x{TARGET_HEIGHT})...")
     processed_frames[0].save(
         gif_out,
         save_all=True,
@@ -112,7 +116,7 @@ def main():
         optimize=True
     )
 
-    print(f"Compiling animated WebP to {webp_out}...")
+    print(f"Compiling animated 16:9 WebP to {webp_out}...")
     processed_frames[0].save(
         webp_out,
         save_all=True,
@@ -121,9 +125,14 @@ def main():
         loop=0
     )
 
+    # Clean up intermediate step images
+    for s in steps:
+        if os.path.exists(s["file"]):
+            os.remove(s["file"])
+
     gif_size_kb = os.path.getsize(gif_out) / 1024
     webp_size_kb = os.path.getsize(webp_out) / 1024
-    print(f"Done! GIF size: {gif_size_kb:.1f} KB, WebP size: {webp_size_kb:.1f} KB")
+    print(f"Done! 16:9 GIF size: {gif_size_kb:.1f} KB, WebP size: {webp_size_kb:.1f} KB")
 
 if __name__ == "__main__":
     main()

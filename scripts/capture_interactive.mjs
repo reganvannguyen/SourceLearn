@@ -10,21 +10,21 @@ async function delay(ms) {
 }
 
 async function run() {
-  console.log("Starting interactive capture...");
+  console.log("Starting interactive 16:9 capture (1280x720)...");
 
   const chromeProc = spawn("google-chrome", [
     "--headless=new",
     "--disable-gpu",
     "--no-sandbox",
-    "--remote-debugging-port=9225",
-    "--window-size=1280,800",
+    "--remote-debugging-port=9226",
+    "--window-size=1280,720",
     "http://localhost:3000"
   ]);
 
   await delay(2500);
 
   try {
-    const listRes = await fetch("http://127.0.0.1:9225/json");
+    const listRes = await fetch("http://127.0.0.1:9226/json");
     const targets = await listRes.json();
     const target = targets.find((t) => t.type === "page") || targets[0];
     if (!target) throw new Error("No Chrome page target found");
@@ -58,11 +58,28 @@ async function run() {
     await send("Page.enable");
     await send("Runtime.enable");
 
+    // Force exact 16:9 widescreen device metrics (1280x720)
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: 1280,
+      height: 720,
+      deviceScaleFactor: 1,
+      mobile: false
+    });
+
     async function capture(filename) {
-      const res = await send("Page.captureScreenshot", { format: "png" });
+      const res = await send("Page.captureScreenshot", {
+        format: "png",
+        clip: {
+          x: 0,
+          y: 0,
+          width: 1280,
+          height: 720,
+          scale: 1
+        }
+      });
       const buffer = Buffer.from(res.data, "base64");
       fs.writeFileSync(path.join(ASSETS_DIR, filename), buffer);
-      console.log(`Saved screenshot: ${filename}`);
+      console.log(`Saved 16:9 screenshot: ${filename}`);
     }
 
     async function evaluate(expression) {
@@ -109,7 +126,7 @@ async function run() {
     await delay(2500);
     await capture("step3_os_notebook.png");
 
-    // 4. Type realistic question in the chat input bar (.chat-input__field is an input element!)
+    // 4. Type realistic question in the chat input bar (.chat-input__field)
     const questionText = "What is a kernel, and how do monolithic and microkernel architectures differ?";
     await evaluate(`
       const input = document.querySelector('.chat-input__field, input[type="text"]');
@@ -156,7 +173,7 @@ async function run() {
     await capture("step6_split_screen.png");
 
     ws.close();
-    console.log("All interactive frames captured successfully!");
+    console.log("All interactive 16:9 frames captured successfully!");
   } finally {
     chromeProc.kill();
   }
