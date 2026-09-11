@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   createNotebook,
   deleteNotebook,
@@ -13,10 +14,11 @@ import NotebookCard from "../components/NotebookCard";
 import { NotebookIcon } from "../components/NotebookIcon";
 
 type NotebooksPageProps = {
-  onSelectNotebook: (notebook: Notebook) => void;
+  onSelectNotebook?: (notebook: Notebook) => void;
 };
 
 const NotebooksPage = ({ onSelectNotebook }: NotebooksPageProps) => {
+  const navigate = useNavigate();
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,10 +46,22 @@ const NotebooksPage = ({ onSelectNotebook }: NotebooksPageProps) => {
     fetchNotebooks();
   }, []);
 
+  const handleSelectNotebook = (notebook: Notebook) => {
+    if (onSelectNotebook) {
+      onSelectNotebook(notebook);
+    } else {
+      navigate(`/notebooks/${notebook.id}`, { state: { notebook } });
+    }
+  };
+
   const handleCreate = async (name: string, color: string, icon: string) => {
     const created = await createNotebook(name, color, icon);
     setNotebooks((prev) => [created, ...prev]);
-    onSelectNotebook(created);
+    if (onSelectNotebook) {
+      onSelectNotebook(created);
+    } else {
+      navigate(`/notebooks/${created.id}`, { state: { notebook: created } });
+    }
   };
 
   const handleUpdateNotebook = async (
@@ -133,7 +147,7 @@ const NotebooksPage = ({ onSelectNotebook }: NotebooksPageProps) => {
                   <NotebookCard
                     key={nb.id}
                     notebook={nb}
-                    onClick={() => onSelectNotebook(nb)}
+                    onClick={() => handleSelectNotebook(nb)}
                     onEdit={(nbToEdit) => setEditingNotebook(nbToEdit)}
                     onDelete={(nbToDelete) => setDeletingNotebook(nbToDelete)}
                   />
