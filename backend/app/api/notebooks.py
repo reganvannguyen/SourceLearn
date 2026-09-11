@@ -19,6 +19,14 @@ def get_notebooks(db: Session = Depends(get_db)):
     return notebooks
 
 
+@router.get("/{notebook_id}", response_model=NotebookResponse)
+def get_notebook(notebook_id: int, db: Session = Depends(get_db)):
+    notebook = db.get(Notebook, notebook_id)
+    if not notebook:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+    return notebook
+
+
 @router.post("/", response_model=NotebookResponse)
 def post_notebook(notebook_in: NotebookCreate, db: Session = Depends(get_db)):
     new_notebook = Notebook(

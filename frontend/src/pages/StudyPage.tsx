@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
     deleteDocument,
     getDocumentsByNotebook,
@@ -12,7 +13,7 @@ import {
     type CitationItem,
 } from "../api/messages";
 import type { Notebook } from "../api/notebooks";
-import { deleteNotebook, updateNotebook } from "../api/notebooks";
+import { deleteNotebook, getNotebook, updateNotebook } from "../api/notebooks";
 import ChatInput from "../components/ChatInput";
 import ChatMessage, {
     type ChatMessageData,
@@ -20,6 +21,7 @@ import ChatMessage, {
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import EditNotebookModal from "../components/EditNotebookModal";
 import FileUpload from "../components/FileUpload";
+import { NotebookIcon } from "../components/NotebookIcon";
 import PdfViewerPane from "../components/PdfViewerPane";
 import StudySidebar from "../components/StudySidebar";
 
@@ -33,12 +35,39 @@ const initialMessages: ChatMessageData[] = [
 ];
 
 type StudyPageProps = {
-    notebook: Notebook;
+    notebook?: Notebook;
     onBack?: () => void;
 };
 
 const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
-    const [currentNotebook, setCurrentNotebook] = useState<Notebook>(notebook);
+    const params = useParams<{ notebookId: string }>();
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    const locationNotebook = (location.state as { notebook?: Notebook } | null)?.notebook;
+    const initialNotebook = notebook || locationNotebook;
+
+    const parsedId = params.notebookId ? parseInt(params.notebookId, 10) : NaN;
+
+    const [currentNotebook, setCurrentNotebook] = useState<Notebook | null>(() => {
+        if (initialNotebook && (!parsedId || initialNotebook.id === parsedId)) {
+            return initialNotebook;
+        }
+        return null;
+    });
+    const [isLoadingNotebook, setIsLoadingNotebook] = useState<boolean>(() => {
+        if (initialNotebook && (!parsedId || initialNotebook.id === parsedId)) {
+            return false;
+        }
+        return !isNaN(parsedId);
+    });
+    const [notebookError, setNotebookError] = useState<string | null>(() => {
+        if (isNaN(parsedId) && !initialNotebook) {
+            return "Invalid notebook ID.";
+        }
+        return null;
+    });
+
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [isDeletingHistory, setIsDeletingHistory] = useState(false);
@@ -54,6 +83,50 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
     const [loadError, setLoadError] = useState<string | null>(null);
     const [isSending, setIsSending] = useState(false);
 
+    // PDF modal viewing state
+    const [viewingDoc, setViewingDoc] = useState<DocumentResponse | null>(null);
+    const [viewingPage, setViewingPage] = useState<number | undefined>(undefined);
+    const [viewingSnippet, setViewingSnippet] = useState<string | undefined>(undefined);
+
+    const chatScrollRef = useRef<HTMLDivElement>(null);
+
+    const handleBack = useCallback(() => {
+        if (onBack) {
+            onBack();
+        } else {
+            navigate("/");
+        }
+    }, [onBack, navigate]);
+
+    useEffect(() => {
+        if (isNaN(parsedId)) {
+            return;
+        }
+        if (currentNotebook && currentNotebook.id === parsedId) {
+            return;
+        }
+
+        let isMounted = true;
+
+        getNotebook(parsedId)
+            .then((data) => {
+                if (isMounted) {
+                    setCurrentNotebook(data);
+                    setIsLoadingNotebook(false);
+                }
+            })
+            .catch((err: unknown) => {
+                if (isMounted) {
+                    setNotebookError(err instanceof Error ? err.message : "Notebook not found.");
+                    setIsLoadingNotebook(false);
+                }
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [parsedId, currentNotebook]);
+
     const handleUpdateNotebook = async (
         id: number,
         name: string,
@@ -61,16 +134,17 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
         icon: string,
     ) => {
         const updated = await updateNotebook(id, { name, color, icon });
-        setCurrentNotebook((prev) => ({ ...prev, ...updated }));
+        setCurrentNotebook((prev) => (prev ? { ...prev, ...updated } : prev));
     };
 
     const handleDeleteChatHistory = async () => {
+        if (!currentNotebook) return;
         setIsDeletingHistory(true);
         try {
             await deleteNotebookMessages(currentNotebook.id);
             setMessages(initialMessages);
             setIsDeleteConfirmOpen(false);
-        } catch (err) {
+        } catch (err: unknown) {
             alert(
                 err instanceof Error
                     ? err.message
@@ -82,12 +156,13 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
     };
 
     const handleDeleteNotebook = async () => {
+        if (!currentNotebook) return;
         setIsDeletingNotebook(true);
         try {
             await deleteNotebook(currentNotebook.id);
             setIsDeleteNotebookOpen(false);
-            onBack?.();
-        } catch (err) {
+            handleBack();
+        } catch (err: unknown) {
             alert(
                 err instanceof Error
                     ? err.message
@@ -110,29 +185,22 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
                 setViewingSnippet(undefined);
             }
             setDocToDelete(null);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error deleting document:", err);
-            alert(err?.message || "Failed to remove document. Please try again.");
+            alert(err instanceof Error ? err.message : "Failed to remove document. Please try again.");
         } finally {
             setIsDeletingDoc(false);
         }
     };
 
-    // PDF modal viewing state
-    const [viewingDoc, setViewingDoc] = useState<DocumentResponse | null>(null);
-    const [viewingPage, setViewingPage] = useState<number | undefined>(undefined);
-    const [viewingSnippet, setViewingSnippet] = useState<string | undefined>(undefined);
-
-    const chatScrollRef = useRef<HTMLDivElement>(null);
-
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(async (targetNotebookId: number) => {
         setIsLoadingDocs(true);
         setIsLoadingMessages(true);
         setLoadError(null);
         try {
             const [docs, msgs] = await Promise.all([
-                getDocumentsByNotebook(notebook.id),
-                getNotebookMessages(notebook.id),
+                getDocumentsByNotebook(targetNotebookId),
+                getNotebookMessages(targetNotebookId),
             ]);
 
             setDocuments(docs);
@@ -148,18 +216,54 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
             } else {
                 setMessages(initialMessages);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error loading notebook data:", err);
-            setLoadError(err?.message || "Failed to load study material and conversation.");
+            setLoadError(err instanceof Error ? err.message : "Failed to load study material and conversation.");
         } finally {
             setIsLoadingDocs(false);
             setIsLoadingMessages(false);
         }
-    }, [notebook.id]);
+    }, []);
 
     useEffect(() => {
-        loadData();
-    }, [loadData]);
+        if (!currentNotebook?.id) return;
+        const notebookId = currentNotebook.id;
+        let isMounted = true;
+
+        Promise.all([
+            getDocumentsByNotebook(notebookId),
+            getNotebookMessages(notebookId),
+        ])
+            .then(([docs, msgs]) => {
+                if (!isMounted) return;
+                setDocuments(docs);
+                if (msgs && msgs.length > 0) {
+                    setMessages(
+                        msgs.map((m) => ({
+                            id: m.id,
+                            sender: m.sender,
+                            content: m.content,
+                            citations: m.citations || [],
+                        }))
+                    );
+                } else {
+                    setMessages(initialMessages);
+                }
+                setIsLoadingDocs(false);
+                setIsLoadingMessages(false);
+            })
+            .catch((err: unknown) => {
+                if (!isMounted) return;
+                console.error("Error loading notebook data:", err);
+                setLoadError(err instanceof Error ? err.message : "Failed to load study material and conversation.");
+                setIsLoadingDocs(false);
+                setIsLoadingMessages(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [currentNotebook?.id]);
 
     // Auto-scroll to bottom when messages change
     useEffect(() => {
@@ -170,10 +274,11 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
 
     const handleSend = async (content: string) => {
         const questionText = content.trim();
-        if (isSending || !questionText) return;
+        if (isSending || !questionText || !currentNotebook) return;
 
-        const userTempId = `user-${Date.now()}`;
-        const thinkingId = `thinking-${Date.now()}`;
+        const randomSuffix = Math.random().toString(36).slice(2, 9);
+        const userTempId = `user-${randomSuffix}`;
+        const thinkingId = `thinking-${randomSuffix}`;
 
         const userMessage: ChatMessageData = {
             id: userTempId,
@@ -184,7 +289,7 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
         const thinkingMessage: ChatMessageData = {
             id: thinkingId,
             sender: "assistant",
-            content: "",
+            content: "Consulting your study materials…",
             isThinking: true,
         };
 
@@ -192,7 +297,7 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
         setIsSending(true);
 
         try {
-            const assistantResponse = await sendNotebookMessage(notebook.id, questionText);
+            const assistantResponse = await sendNotebookMessage(currentNotebook.id, questionText);
 
             setMessages((prev) =>
                 prev.map((msg) =>
@@ -206,17 +311,18 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
                         : msg
                 )
             );
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error sending question:", err);
             const errorMessage =
-                err?.message ||
-                "Unable to get a response from the study assistant. Please try again.";
+                err instanceof Error
+                    ? err.message
+                    : "Unable to get a response from the study assistant. Please try again.";
 
             setMessages((prev) =>
                 prev.map((msg) =>
                     msg.id === thinkingId
                         ? {
-                              id: `err-${Date.now()}`,
+                              id: `err-${Math.random().toString(36).slice(2, 9)}`,
                               sender: "assistant",
                               content: errorMessage,
                               isError: true,
@@ -231,7 +337,8 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
     };
 
     const handleFileConfirm = async (file: File) => {
-        const uploadedDoc = await uploadDocument(file, notebook.id);
+        if (!currentNotebook) return;
+        const uploadedDoc = await uploadDocument(file, currentNotebook.id);
         setDocuments((prev) => [uploadedDoc, ...prev]);
     };
 
@@ -240,7 +347,7 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
             documents.find((d) => d.document_id === citation.document_id) || {
                 document_id: citation.document_id,
                 file_name: citation.file_name,
-                notebook_id: notebook.id,
+                notebook_id: currentNotebook?.id || citation.document_id,
             };
 
         setViewingPage(citation.page_number);
@@ -260,6 +367,38 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
         }
     };
 
+    if (isLoadingNotebook) {
+        return (
+            <main className="study-page-state">
+                <div className="study-page-state__card">
+                    <div className="study-page-state__spinner" />
+                    <p>Loading notebook…</p>
+                </div>
+            </main>
+        );
+    }
+
+    if (notebookError || !currentNotebook) {
+        return (
+            <main className="study-page-state">
+                <div className="study-page-state__card">
+                    <div className="study-page-state__icon">
+                        <NotebookIcon icon="book" size={48} />
+                    </div>
+                    <h2>Notebook Not Found</h2>
+                    <p>{notebookError || "The requested notebook could not be found or has been removed."}</p>
+                    <button
+                        type="button"
+                        className="study-page-state__btn"
+                        onClick={handleBack}
+                    >
+                        &larr; Back to Notebooks
+                    </button>
+                </div>
+            </main>
+        );
+    }
+
     const notebookColor = currentNotebook.color || "#7eaed7";
 
     return (
@@ -273,7 +412,7 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
                 activeDocumentId={viewingDoc?.document_id}
                 isLoadingDocs={isLoadingDocs}
                 onAddMaterial={() => setIsUploadOpen(true)}
-                onBack={onBack}
+                onBack={handleBack}
                 onSelectDocument={handleSelectSidebarDoc}
                 onEditNotebook={() => setIsEditModalOpen(true)}
                 onDeleteChatHistory={() => setIsDeleteConfirmOpen(true)}
@@ -305,7 +444,7 @@ const StudyPage = ({ notebook, onBack }: StudyPageProps) => {
                         <button
                             type="button"
                             className="study-load-error__btn"
-                            onClick={loadData}
+                            onClick={() => currentNotebook && loadData(currentNotebook.id)}
                         >
                             Retry
                         </button>

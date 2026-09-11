@@ -12,6 +12,10 @@ export const getNotebooks = async (): Promise<Notebook[]> => {
   return apiFetch<Notebook[]>("http://localhost:8082/notebooks/");
 };
 
+export const getNotebook = async (id: number): Promise<Notebook> => {
+  return apiFetch<Notebook>(`http://localhost:8082/notebooks/${id}`);
+};
+
 export const createNotebook = async (
   name: string,
   color: string = "#7eaed7",
