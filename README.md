@@ -93,7 +93,7 @@ graph TD
     Retriever --> Synthesizer
     Synthesizer <-->|Context + Strict Citation Prompt| GeminiFlash
     Synthesizer -->|Structured JSON + Citations| UI
-    UI -->|3. Click [p. 6] Citation| CanvasViewer
+    UI -->|"3. Click Citation (e.g. p. 11)"| CanvasViewer
 ```
 
 ---
