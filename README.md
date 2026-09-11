@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📚 SourceLearn
+# SourceLearn
 
 **Production-grade, citation-grounded AI study assistant and intelligent research notebook platform.**
 
@@ -23,7 +23,7 @@ Organize course materials into nostalgic Hilroy-style notebooks, upload dense ac
 
 ---
 
-## 🌟 Why SourceLearn?
+## Why SourceLearn?
 
 Generic LLM chatbots frequently **hallucinate**, conflate disparate course concepts, and cannot prove where their statements originate. 
 
@@ -34,22 +34,22 @@ Generic LLM chatbots frequently **hallucinate**, conflate disparate course conce
 
 ---
 
-## ⚡ Key Capabilities
+## Key Capabilities
 
 | Feature | Description |
 | :--- | :--- |
-| 📓 **Multi-Notebook Organization** | Group courses, syllabi, and lecture slides into custom notebooks with color palettes and course emblems inspired by iconic Canadian Hilroy exercise booklets. |
-| 📄 **Automated PDF Parsing & Indexing** | Ingests dense academic PDFs using PyMuPDF (`fitz`), recursively splits text preserving page-level metadata, and indexes dense vector embeddings into PostgreSQL. |
-| 🔍 **Vector Cosine Search (pgvector)** | Performs low-latency similarity search directly within PostgreSQL, co-locating relational data and vector embeddings for transactional consistency. |
-| 💬 **Grounded Multi-Turn Chat** | Conversational Q&A powered by Google Gemini 2.5 Flash, returning schema-validated answers with structured inline citations. |
-| 🎯 **Split-Screen In-Document Highlighting** | Canvas-based PDF viewer that synchronizes with chat citations, jumping to the exact page and visually highlighting cited passages. |
-| ⚡ **Smart Query Condensation** | Heuristic-driven conversational query rewriter that detects follow-up questions vs. standalone queries, saving 60%+ in LLM latency and API quota. |
-| 🛡️ **Zero-Orphan Cascade Deletions** | Deleting documents or notebooks atomically purges vector chunks, relational records, and physical disk files. |
-| 🧭 **Client-Side Page Routing** | Full SPA routing via React Router 7 with shareable URLs (`/notebooks/:id`), page-refresh persistence, and custom 404 handling. |
+| **Multi-Notebook Organization** | Group courses, syllabi, and lecture slides into custom notebooks with color palettes and course emblems inspired by iconic Canadian Hilroy exercise booklets. |
+| **Automated PDF Parsing & Indexing** | Ingests dense academic PDFs using PyMuPDF (`fitz`), recursively splits text preserving page-level metadata, and indexes dense vector embeddings into PostgreSQL. |
+| **Vector Cosine Search (pgvector)** | Performs low-latency similarity search directly within PostgreSQL, co-locating relational data and vector embeddings for transactional consistency. |
+| **Grounded Multi-Turn Chat** | Conversational Q&A powered by Google Gemini 2.5 Flash, returning schema-validated answers with structured inline citations. |
+| **Split-Screen In-Document Highlighting** | Canvas-based PDF viewer that synchronizes with chat citations, jumping to the exact page and visually highlighting cited passages. |
+| **Smart Query Condensation** | Heuristic-driven conversational query rewriter that detects follow-up questions vs. standalone queries, saving 60%+ in LLM latency and API quota. |
+| **Zero-Orphan Cascade Deletions** | Deleting documents or notebooks atomically purges vector chunks, relational records, and physical disk files. |
+| **Client-Side Page Routing** | Full SPA routing via React Router 7 with shareable URLs (`/notebooks/:id`), page-refresh persistence, and custom 404 handling. |
 
 ---
 
-## 🏗️ System Architecture & RAG Pipeline
+## System Architecture & RAG Pipeline
 
 ```mermaid
 graph TD
@@ -98,7 +98,7 @@ graph TD
 
 ---
 
-## 🛠️ Engineering Highlights & Design Decisions
+## Engineering Highlights & Design Decisions
 
 <details open>
 <summary><b>1. Why PostgreSQL + pgvector Over Standalone Vector Databases?</b></summary>
@@ -120,7 +120,7 @@ Standard AI chat applications return plain text citations. SourceLearn coordinat
 
 ---
 
-## 🧰 Tech Stack Breakdown
+## Tech Stack Breakdown
 
 | Layer | Technologies |
 | :--- | :--- |
@@ -132,7 +132,7 @@ Standard AI chat applications return plain text citations. SourceLearn coordinat
 
 ---
 
-## 🚀 Quickstart
+## Quickstart
 
 ### 1. Prerequisites
 - [Docker & Docker Compose](https://www.docker.com/)
@@ -164,18 +164,18 @@ Open **http://localhost:3000** in your browser.
 
 ---
 
-## 📖 In-Depth Documentation
+## In-Depth Documentation
 
 Comprehensive deep-dives are organized in the [`docs/`](docs/) directory:
 
-- 🏛️ **[System Architecture](docs/architecture.md)** — Relational & vector schema, ER diagrams, cascading integrity, and component hierarchy.
-- 🔬 **[RAG Pipeline Deep Dive](docs/rag-pipeline.md)** — Document parsing, recursive chunking parameters, cosine retrieval, follow-up heuristics, and citation grammar.
-- 🔌 **[REST API Reference](docs/api-reference.md)** — Complete OpenAPI specification with request/response schemas and curl examples.
-- 🛠️ **[Local Setup & Troubleshooting](docs/setup-guide.md)** — Manual step-by-step installation, Docker volume management, and troubleshooting FAQ.
+- **[System Architecture](docs/architecture.md)** — Relational & vector schema, ER diagrams, cascading integrity, and component hierarchy.
+- **[RAG Pipeline Deep Dive](docs/rag-pipeline.md)** — Document parsing, recursive chunking parameters, cosine retrieval, follow-up heuristics, and citation grammar.
+- **[REST API Reference](docs/api-reference.md)** — Complete OpenAPI specification with request/response schemas and curl examples.
+- **[Local Setup & Troubleshooting](docs/setup-guide.md)** — Manual step-by-step installation, Docker volume management, and troubleshooting FAQ.
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 ```
 SourceLearn/
@@ -206,13 +206,14 @@ SourceLearn/
 │   ├── api-reference.md     # REST API specification
 │   └── setup-guide.md       # Step-by-step developer guide
 ├── scripts/
-│   └── generate_assets.py   # Automated screenshot & demo GIF generator
+│   ├── capture_interactive.mjs # Interactive headless Chrome capture
+│   └── generate_assets.py      # Automated screenshot & demo GIF compiler
 ├── start.sh                 # Unified 1-command startup orchestration
 └── README.md                # Project showcase & portfolio overview
 ```
 
 ---
 
-## 📄 License
+## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
