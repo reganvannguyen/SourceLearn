@@ -43,19 +43,3 @@ def delete_file(object_key: str):
         Bucket=S3_BUCKET_NAME,
         Key=object_key,
     )
-
-
-
-if __name__ == "__main__":
-    test_key = "test/sourcelearn-test.txt"
-
-    upload_file(
-        b"Hello from SourceLearn!",
-        test_key,
-        content_type="text/plain",
-    )
-
-    data = get_file(test_key)
-    print(data.decode())
-
-    delete_file(test_key)

@@ -84,8 +84,11 @@ def delete_notebook(notebook_id: int, db: Session = Depends(get_db)):
         if doc.s3_key:
             try:
                 delete_file(doc.s3_key)
-            except Exception as e:
-                print(f"Warning: Failed to delete S3 object {doc.s3_key}: {e}")
+            except Exception:
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Failed to delete document '{doc.file_name}' from storage",
+                )
 
     # 4. Delete document records
     if doc_ids:

@@ -104,20 +104,22 @@ async def upload_document(
 
     safe_name = re.sub(r"[^\w\-.]", "_", original_name)
     stored_filename = f"{uuid.uuid4().hex}_{safe_name}"
-
     s3_key = f"notebooks/{notebook_id}/documents/{stored_filename}"
 
-    upload_file(
-        file_bytes,
-        s3_key,
-        content_type=file.content_type or "application/pdf",
-    )
-
-    pages = await extract_pdf(file_bytes)
-    chunks = chunk_pages(pages)
-    embedded_chunks = embed_chunks(chunks)
+    s3_uploaded = False
 
     try:
+        upload_file(
+            file_bytes,
+            s3_key,
+            content_type=file.content_type or "application/pdf",
+        )
+        s3_uploaded = True
+
+        pages = await extract_pdf(file_bytes)
+        chunks = chunk_pages(pages)
+        embedded_chunks = embed_chunks(chunks)
+
         document = Document(
             file_name=original_name,
             notebook_id=notebook_id,
@@ -128,14 +130,14 @@ async def upload_document(
         db.flush()
 
         for chunk in embedded_chunks:
-            output = DocumentChunk(
-                page_number=chunk["page_number"],
-                document_id=document.id,
-                text=chunk["text"],
-                embedding=chunk["embedding"],
+            db.add(
+                DocumentChunk(
+                    page_number=chunk["page_number"],
+                    document_id=document.id,
+                    text=chunk["text"],
+                    embedding=chunk["embedding"],
+                )
             )
-
-            db.add(output)
 
         db.commit()
         db.refresh(document)
@@ -148,7 +150,11 @@ async def upload_document(
 
     except Exception:
         db.rollback()
-        delete_file(s3_key)
+        if s3_uploaded:
+            try:
+                delete_file(s3_key)
+            except Exception:
+                pass
         raise
 
 
@@ -158,17 +164,20 @@ def delete_document(document_id: int, db: Session = Depends(get_db)):
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
+    # Delete file from S3 bucket first to prevent orphaned storage objects
+    if doc.s3_key:
+        try:
+            delete_file(doc.s3_key)
+        except Exception:
+            raise HTTPException(
+                status_code=502,
+                detail="Failed to delete document from storage",
+            )
+
     # Delete vector embeddings / chunks
     chunk_stmt = delete(DocumentChunk).where(DocumentChunk.document_id == document_id)
     chunk_res = db.execute(chunk_stmt)
     deleted_chunks = chunk_res.rowcount
-
-    # Delete file from S3 bucket if s3_key exists
-    if doc.s3_key:
-        try:
-            delete_file(doc.s3_key)
-        except Exception as e:
-            print(f"Warning: Failed to delete S3 object {doc.s3_key}: {e}")
 
     # Delete document record
     doc_stmt = delete(Document).where(Document.id == document_id)
