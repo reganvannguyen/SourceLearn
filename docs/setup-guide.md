@@ -100,6 +100,13 @@ cd frontend
 npx tsc -b --noEmit
 ```
 
+### Frontend Automated Tests
+```bash
+cd frontend
+npm test
+```
+
+
 ### Backend Syntax & Imports
 ```bash
 cd backend

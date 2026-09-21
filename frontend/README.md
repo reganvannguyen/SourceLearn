@@ -56,3 +56,16 @@ npm install
 npm run dev
 ```
 Open `http://localhost:3000` in your web browser.
+
+---
+
+## Running Tests
+Run the automated test suite using **Vitest** and **React Testing Library**:
+```bash
+# Single test run
+npm test
+
+# Watch mode during development
+npm run test:watch
+```
+
