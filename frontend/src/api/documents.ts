@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, API_BASE_URL } from "./client";
 
 export interface DocumentResponse {
   document_id: number;
@@ -14,7 +14,7 @@ export const uploadDocument = async (
   formData.append("file", file);
 
   return apiFetch<DocumentResponse>(
-    `http://localhost:8082/notebooks/${notebookId}/documents`,
+    `${API_BASE_URL}/notebooks/${notebookId}/documents`,
     {
       method: "POST",
       body: formData,
@@ -26,7 +26,7 @@ export const getDocumentsByNotebook = async (
   notebookId: number,
 ): Promise<DocumentResponse[]> => {
   return apiFetch<DocumentResponse[]>(
-    `http://localhost:8082/notebooks/${notebookId}/documents`,
+    `${API_BASE_URL}/notebooks/${notebookId}/documents`,
   );
 };
 
@@ -36,7 +36,7 @@ export const getDocumentFileUrl = (
   snippet?: string,
   color?: string,
 ): string => {
-  const url = new URL(`http://localhost:8082/documents/${documentId}/file`);
+  const url = new URL(`${API_BASE_URL}/documents/${documentId}/file`);
   if (page) url.searchParams.set("page", page.toString());
   if (snippet) url.searchParams.set("snippet", snippet);
   if (color) url.searchParams.set("color", color);
@@ -47,7 +47,7 @@ export const deleteDocument = async (
   documentId: number,
 ): Promise<{ success: boolean; deleted_chunks: number }> => {
   return apiFetch<{ success: boolean; deleted_chunks: number }>(
-    `http://localhost:8082/documents/${documentId}`,
+    `${API_BASE_URL}/documents/${documentId}`,
     {
       method: "DELETE",
     },

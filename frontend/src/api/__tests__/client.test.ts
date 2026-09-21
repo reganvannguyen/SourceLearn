@@ -21,7 +21,7 @@ describe("apiFetch client", () => {
       json: vi.fn().mockResolvedValue(mockData),
     } as unknown as Response);
 
-    const result = await apiFetch<typeof mockData>("http://localhost:8082/notebooks/1");
+    const result = await apiFetch<typeof mockData>("http://localhost:8000/notebooks/1");
     expect(result).toEqual(mockData);
   });
 
@@ -32,7 +32,7 @@ describe("apiFetch client", () => {
       json: vi.fn().mockResolvedValue({ detail: "Notebook name cannot be empty" }),
     } as unknown as Response);
 
-    await expect(apiFetch("http://localhost:8082/notebooks/")).rejects.toThrow(
+    await expect(apiFetch("http://localhost:8000/notebooks/")).rejects.toThrow(
       "Notebook name cannot be empty",
     );
   });
@@ -44,7 +44,7 @@ describe("apiFetch client", () => {
       json: vi.fn().mockResolvedValue({ detail: "Notebook not found" }),
     } as unknown as Response);
 
-    await expect(apiFetch("http://localhost:8082/notebooks/999")).rejects.toThrow(
+    await expect(apiFetch("http://localhost:8000/notebooks/999")).rejects.toThrow(
       "Notebook not found",
     );
   });
@@ -56,7 +56,7 @@ describe("apiFetch client", () => {
       json: vi.fn().mockResolvedValue({}),
     } as unknown as Response);
 
-    await expect(apiFetch("http://localhost:8082/messages/")).rejects.toThrow(
+    await expect(apiFetch("http://localhost:8000/messages/")).rejects.toThrow(
       /AI request rate limit reached/,
     );
   });
@@ -68,7 +68,7 @@ describe("apiFetch client", () => {
       json: vi.fn().mockResolvedValue({}),
     } as unknown as Response);
 
-    await expect(apiFetch("http://localhost:8082/messages/")).rejects.toThrow(
+    await expect(apiFetch("http://localhost:8000/messages/")).rejects.toThrow(
       /temporarily experiencing high traffic/,
     );
   });
@@ -77,7 +77,7 @@ describe("apiFetch client", () => {
     const networkError = new TypeError("Failed to fetch");
     globalThis.fetch = vi.fn().mockRejectedValue(networkError);
 
-    await expect(apiFetch("http://localhost:8082/notebooks/")).rejects.toThrow(
+    await expect(apiFetch("http://localhost:8000/notebooks/")).rejects.toThrow(
       /Unable to connect to the server/,
     );
   });
@@ -87,7 +87,7 @@ describe("apiFetch client", () => {
     timeoutError.name = "TimeoutError";
     globalThis.fetch = vi.fn().mockRejectedValue(timeoutError);
 
-    await expect(apiFetch("http://localhost:8082/notebooks/")).rejects.toThrow(
+    await expect(apiFetch("http://localhost:8000/notebooks/")).rejects.toThrow(
       /Request timed out/,
     );
   });

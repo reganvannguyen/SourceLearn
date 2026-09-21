@@ -48,7 +48,7 @@ Start PostgreSQL and the FastAPI backend together:
 ```bash
 docker compose up -d --build
 ```
-- Interactive Swagger documentation: `http://localhost:8082/docs`
+- Interactive Swagger documentation: `http://localhost:8000/docs`
 - Adminer Database GUI: `http://localhost:8080`
 
 ### Running Tests

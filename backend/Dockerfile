@@ -22,6 +22,7 @@ COPY app /app/app
 # Ensure uploads directory exists
 RUN mkdir -p /app/uploads
 
-EXPOSE 8082
+EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8082"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+

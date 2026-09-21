@@ -23,9 +23,9 @@ chmod +x start.sh
 ./start.sh
 ```
 
-- **Frontend**: `http://localhost:3000`
-- **Backend API**: `http://localhost:8082`
-- **Swagger Docs**: `http://localhost:8082/docs`
+- **Frontend**: `http://localhost:5173`
+- **Backend API**: `http://localhost:8000`
+- **Swagger Docs**: `http://localhost:8000/docs`
 
 > Press `Ctrl+C` in your terminal to gracefully shut down the frontend, backend, and PostgreSQL container.
 
@@ -46,7 +46,7 @@ Verify the containers are healthy and running:
 docker ps
 ```
 - PostgreSQL: `localhost:5432`
-- FastAPI backend: `http://localhost:8082` (interactive docs: `http://localhost:8082/docs`)
+- FastAPI backend: `http://localhost:8000` (interactive docs: `http://localhost:8000/docs`)
 - Adminer database GUI: `http://localhost:8080`
 
 ### Step 2: Configure Environment Variables
@@ -68,7 +68,7 @@ npm install
 # Start development server
 npm run dev
 ```
-Open `http://localhost:3000` in your web browser.
+Open `http://localhost:5173` in your web browser.
 
 ---
 
@@ -112,8 +112,8 @@ pytest tests -v
 
 ### Check Running Endpoints
 ```bash
-curl -I http://localhost:8082/notebooks/
-curl -I http://localhost:3000/
+curl -I http://localhost:8000/notebooks/
+curl -I http://localhost:5173/
 ```
 
 ---
@@ -131,5 +131,5 @@ docker compose up -d
 #### Issue: `GEMINI_API_KEY is not configured`
 **Solution**: Ensure your `.env` file exists in `backend/` and contains a valid API key from Google AI Studio.
 
-#### Issue: Port 3000 or 8082 already in use
-**Solution**: Check for existing processes using `lsof -i :3000` or `lsof -i :8082` and terminate them before launching.
+#### Issue: Port 5173 or 8000 already in use
+**Solution**: Check for existing processes using `lsof -i :5173` or `lsof -i :8000` and terminate them before launching.

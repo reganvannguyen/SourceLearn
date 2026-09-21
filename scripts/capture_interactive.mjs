@@ -18,7 +18,7 @@ async function run() {
     "--no-sandbox",
     "--remote-debugging-port=9226",
     "--window-size=1280,720",
-    "http://localhost:3000"
+    "http://localhost:5173"
   ]);
 
   await delay(2500);
@@ -91,7 +91,7 @@ async function run() {
     }
 
     // 1. Dashboard Overview
-    await evaluate("window.location.href = 'http://localhost:3000'");
+    await evaluate("window.location.href = 'http://localhost:5173'");
     await delay(2000);
     await capture("step1_dashboard.png");
 
@@ -122,7 +122,7 @@ async function run() {
     await delay(600);
 
     // 3. Open Operating System notebook (/notebooks/1)
-    await evaluate("window.location.href = 'http://localhost:3000/notebooks/1'");
+    await evaluate("window.location.href = 'http://localhost:5173/notebooks/1'");
     await delay(2500);
     await capture("step3_os_notebook.png");
 

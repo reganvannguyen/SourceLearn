@@ -2,9 +2,9 @@
 
 Complete specification for the SourceLearn REST API powered by FastAPI.
 
-**Base URL**: `http://localhost:8082`  
-**Interactive Swagger UI**: `http://localhost:8082/docs`  
-**ReDoc Specification**: `http://localhost:8082/redoc`  
+**Base URL**: `http://localhost:8000`  
+**Interactive Swagger UI**: `http://localhost:8000/docs`  
+**ReDoc Specification**: `http://localhost:8000/redoc`  
 
 ---
 

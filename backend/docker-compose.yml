@@ -24,7 +24,7 @@ services:
     container_name: sourcelearn-backend
     restart: always
     ports:
-      - "8082:8082"
+      - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+psycopg://myuser:mysecurepassword@db:5432/vectordb
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -36,7 +36,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8082"]
+    command: ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
 
   adminer:
     image: adminer

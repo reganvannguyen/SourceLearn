@@ -18,7 +18,7 @@ The frontend for SourceLearn is a modern Single Page Application (SPA) built wit
 ```
 frontend/
 ├── src/
-│   ├── api/          # Typed API client fetching from backend (port 8082)
+│   ├── api/          # Typed API client fetching from backend (port 8000)
 │   │   ├── client.ts    # Base fetch wrapper with error handling
 │   │   ├── notebooks.ts # Notebook endpoints
 │   │   ├── documents.ts # Document upload & delete
@@ -44,7 +44,7 @@ frontend/
 │   ├── index.css     # Global reset, typography, and lined paper background
 │   └── main.tsx      # Root entrypoint
 ├── index.html        # HTML5 template
-├── vite.config.ts    # Vite bundler config (port 3000)
+├── vite.config.ts    # Vite bundler config (port 5173)
 └── package.json      # Dependencies and scripts
 ```
 
@@ -55,7 +55,7 @@ frontend/
 npm install
 npm run dev
 ```
-Open `http://localhost:3000` in your web browser.
+Open `http://localhost:5173` in your web browser.
 
 ---
 

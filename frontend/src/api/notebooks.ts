@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, API_BASE_URL } from "./client";
 
 export interface Notebook {
   id: number;
@@ -9,11 +9,11 @@ export interface Notebook {
 }
 
 export const getNotebooks = async (): Promise<Notebook[]> => {
-  return apiFetch<Notebook[]>("http://localhost:8082/notebooks/");
+  return apiFetch<Notebook[]>(`${API_BASE_URL}/notebooks/`);
 };
 
 export const getNotebook = async (id: number): Promise<Notebook> => {
-  return apiFetch<Notebook>(`http://localhost:8082/notebooks/${id}`);
+  return apiFetch<Notebook>(`${API_BASE_URL}/notebooks/${id}`);
 };
 
 export const createNotebook = async (
@@ -21,7 +21,7 @@ export const createNotebook = async (
   color: string = "#7eaed7",
   icon: string = "book",
 ): Promise<Notebook> => {
-  return apiFetch<Notebook>("http://localhost:8082/notebooks/", {
+  return apiFetch<Notebook>(`${API_BASE_URL}/notebooks/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -40,7 +40,7 @@ export const updateNotebook = async (
   id: number,
   data: NotebookUpdateData,
 ): Promise<Notebook> => {
-  return apiFetch<Notebook>(`http://localhost:8082/notebooks/${id}`, {
+  return apiFetch<Notebook>(`${API_BASE_URL}/notebooks/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -53,9 +53,10 @@ export const deleteNotebook = async (
   id: number,
 ): Promise<{ success: boolean; deleted_notebook_id: number }> => {
   return apiFetch<{ success: boolean; deleted_notebook_id: number }>(
-    `http://localhost:8082/notebooks/${id}`,
+    `${API_BASE_URL}/notebooks/${id}`,
     {
       method: "DELETE",
     },
   );
 };
+

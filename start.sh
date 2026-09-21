@@ -6,8 +6,8 @@ PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$PROJECT_ROOT/backend"
 FRONTEND_DIR="$PROJECT_ROOT/frontend"
 COMPOSE_FILE="$BACKEND_DIR/docker-compose.yml"
-BACKEND_PORT=8082
-FRONTEND_PORT=3000
+BACKEND_PORT=8000
+FRONTEND_PORT=5173
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "Error: Docker is required but was not found in PATH." >&2
