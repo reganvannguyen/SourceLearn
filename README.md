@@ -58,7 +58,7 @@ graph TD
         CanvasViewer["Canvas PDF Viewer & Highlight"]
     end
 
-    subgraph Backend ["FastAPI Application (Port 8082)"]
+    subgraph Backend ["FastAPI Application (Port 8000)"]
         API["FastAPI REST Endpoints"]
         Ingest["PyMuPDF Document Ingestor"]
         Splitter["Recursive Text Chunking"]
@@ -154,11 +154,11 @@ chmod +x start.sh
 
 The script automatically:
 1. Validates local dependencies.
-2. Spins up PostgreSQL with `pgvector` in Docker on port `5433`.
-3. Launches the FastAPI backend on port `8082`.
-4. Starts the Vite React frontend on port `3000`.
+2. Spins up PostgreSQL with `pgvector` in Docker on port `5432`.
+3. Launches the FastAPI backend on port `8000`.
+4. Starts the Vite React frontend on port `5173`.
 
-Open **http://localhost:3000** in your browser.
+Open **http://localhost:5173** in your browser.
 
 > Press `Ctrl+C` in your terminal to cleanly stop all services and containers.
 

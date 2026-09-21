@@ -6,8 +6,8 @@ PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$PROJECT_ROOT/backend"
 FRONTEND_DIR="$PROJECT_ROOT/frontend"
 COMPOSE_FILE="$BACKEND_DIR/docker-compose.yml"
-BACKEND_PORT=8082
-FRONTEND_PORT=3000
+BACKEND_PORT=8000
+FRONTEND_PORT=5173
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "Error: Docker is required but was not found in PATH." >&2
@@ -78,15 +78,8 @@ if command -v fuser >/dev/null 2>&1; then
   fuser -k "$BACKEND_PORT/tcp" "$FRONTEND_PORT/tcp" >/dev/null 2>&1 || true
 fi
 
-echo "Starting PostgreSQL..."
-docker compose -f "$COMPOSE_FILE" up -d --wait --wait-timeout 60 db
-
-echo "Starting FastAPI on http://localhost:$BACKEND_PORT..."
-(
-  cd "$BACKEND_DIR"
-  exec "$PYTHON" -m uvicorn app.main:app --reload --host 0.0.0.0 --port "$BACKEND_PORT"
-) &
-backend_pid=$!
+echo "Starting PostgreSQL and FastAPI (Docker)..."
+docker compose -f "$COMPOSE_FILE" up -d --wait --wait-timeout 60 db backend
 
 echo "Starting frontend on http://localhost:$FRONTEND_PORT..."
 (
@@ -100,19 +93,20 @@ echo "SourceLearn is running. Press Ctrl+C to stop the frontend, backend, and da
 set +e
 exit_status=0
 while true; do
-  if ! kill -0 "$backend_pid" 2>/dev/null; then
-    wait "$backend_pid" 2>/dev/null
-    exit_status=$?
-    break
-  fi
   if ! kill -0 "$frontend_pid" 2>/dev/null; then
     wait "$frontend_pid" 2>/dev/null
     exit_status=$?
     break
   fi
+  if [[ -z "$(docker compose -f "$COMPOSE_FILE" ps -q backend 2>/dev/null)" ]]; then
+    echo "Backend container exited unexpectedly." >&2
+    exit_status=1
+    break
+  fi
   sleep 1
 done
 set -e
+
 
 
 if (( exit_status != 0 )); then

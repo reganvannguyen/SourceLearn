@@ -43,16 +43,19 @@ backend/
 ## Local Development
 Refer to the [Root Setup Guide](../docs/setup-guide.md) for full instructions.
 
+### Start with Docker Compose
+Start PostgreSQL and the FastAPI backend together:
 ```bash
-# Start Database
-docker compose up -d
+docker compose up -d --build
+```
+- Interactive Swagger documentation: `http://localhost:8000/docs`
+- Adminer Database GUI: `http://localhost:8080`
 
-## Running Tests
+### Running Tests
 Run the automated pytest suite (using in-memory SQLite and offline mocks):
 ```bash
 source .venv/bin/activate
 pytest tests -v
 ```
 
-Interactive documentation is available at `http://localhost:8082/docs`.
 

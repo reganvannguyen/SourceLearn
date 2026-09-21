@@ -11,6 +11,6 @@
 
 ## Dev Server & Frontend Management
 - **DO NOT attempt to run `npm run dev`, `npm run build`, or start frontend/backend servers.**
-- The user already runs `./start.sh`, which runs Vite on port 3000 and FastAPI on port 8082.
+- The user already runs `./start.sh`, which runs Vite on port 5173 and FastAPI on port 8000.
 - Vite uses Hot Module Replacement (HMR); changes to frontend files update the browser automatically.
 - Running frontend server or build commands in terminal tools causes PTY blocking, port collisions, and agent freezes.

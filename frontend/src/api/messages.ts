@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, API_BASE_URL } from "./client";
 
 export interface CitationItem {
   chunk_id: number;
@@ -21,7 +21,7 @@ export const getNotebookMessages = async (
   notebookId: number,
 ): Promise<MessageResponse[]> => {
   return apiFetch<MessageResponse[]>(
-    `http://localhost:8082/notebooks/${notebookId}/messages`,
+    `${API_BASE_URL}/notebooks/${notebookId}/messages`,
   );
 };
 
@@ -30,7 +30,7 @@ export const sendNotebookMessage = async (
   content: string,
 ): Promise<MessageResponse> => {
   return apiFetch<MessageResponse>(
-    `http://localhost:8082/notebooks/${notebookId}/messages`,
+    `${API_BASE_URL}/notebooks/${notebookId}/messages`,
     {
       method: "POST",
       headers: {
@@ -45,7 +45,7 @@ export const deleteNotebookMessages = async (
   notebookId: number,
 ): Promise<{ success: boolean; deleted_count: number }> => {
   return apiFetch<{ success: boolean; deleted_count: number }>(
-    `http://localhost:8082/notebooks/${notebookId}/messages`,
+    `${API_BASE_URL}/notebooks/${notebookId}/messages`,
     {
       method: "DELETE",
     },

@@ -17,6 +17,27 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sourcelearn-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+psycopg://myuser:mysecurepassword@db:5432/vectordb
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    env_file:
+      - .env
+    volumes:
+      - ./uploads:/app/uploads
+      - ./app:/app/app
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+
   adminer:
     image: adminer
     restart: always
@@ -25,6 +46,7 @@ services:
         condition: service_healthy
     ports:
       - "8080:8080"
+
 
 volumes:
   pgdata:
