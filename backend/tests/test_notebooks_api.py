@@ -1,0 +1,71 @@
+import pytest
+
+
+def test_create_and_get_notebook(client):
+    # 1. Create a new notebook
+    response = client.post(
+        "/notebooks/",
+        json={"name": "Operating Systems", "color": "#3b82f6", "icon": "cpu"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Operating Systems"
+    assert data["color"] == "#3b82f6"
+    assert data["icon"] == "cpu"
+    assert "id" in data
+    notebook_id = data["id"]
+
+    # 2. Get specific notebook
+    get_res = client.get(f"/notebooks/{notebook_id}")
+    assert get_res.status_code == 200
+    assert get_res.json()["id"] == notebook_id
+    assert get_res.json()["name"] == "Operating Systems"
+
+    # 3. List notebooks
+    list_res = client.get("/notebooks/")
+    assert list_res.status_code == 200
+    notebooks = list_res.json()
+    assert len(notebooks) >= 1
+    assert any(nb["id"] == notebook_id for nb in notebooks)
+
+
+def test_get_notebook_not_found(client):
+    response = client.get("/notebooks/99999")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Notebook not found"
+
+
+def test_update_notebook(client):
+    # Create notebook
+    res = client.post("/notebooks/", json={"name": "Math 101"})
+    notebook_id = res.json()["id"]
+
+    # Update name and color
+    patch_res = client.patch(
+        f"/notebooks/{notebook_id}",
+        json={"name": "Advanced Calculus", "color": "#10b981"},
+    )
+    assert patch_res.status_code == 200
+    updated = patch_res.json()
+    assert updated["name"] == "Advanced Calculus"
+    assert updated["color"] == "#10b981"
+
+    # Try updating with empty name -> should 400
+    err_res = client.patch(f"/notebooks/{notebook_id}", json={"name": "   "})
+    assert err_res.status_code == 400
+    assert "cannot be empty" in err_res.json()["detail"]
+
+
+def test_delete_notebook(client):
+    res = client.post("/notebooks/", json={"name": "To Delete"})
+    notebook_id = res.json()["id"]
+
+    del_res = client.delete(f"/notebooks/{notebook_id}")
+    assert del_res.status_code == 200
+    assert del_res.json()["success"] is True
+    assert del_res.json()["deleted_notebook_id"] == notebook_id
+
+    # Confirm it is no longer found
+    check_res = client.get(f"/notebooks/{notebook_id}")
+    assert check_res.status_code == 404
+

@@ -98,9 +98,22 @@ frontend_pid=$!
 echo "SourceLearn is running. Press Ctrl+C to stop the frontend, backend, and database."
 
 set +e
-wait -n "$backend_pid" "$frontend_pid"
-exit_status=$?
+exit_status=0
+while true; do
+  if ! kill -0 "$backend_pid" 2>/dev/null; then
+    wait "$backend_pid" 2>/dev/null
+    exit_status=$?
+    break
+  fi
+  if ! kill -0 "$frontend_pid" 2>/dev/null; then
+    wait "$frontend_pid" 2>/dev/null
+    exit_status=$?
+    break
+  fi
+  sleep 1
+done
 set -e
+
 
 if (( exit_status != 0 )); then
   echo "A SourceLearn service exited unexpectedly (status $exit_status)." >&2

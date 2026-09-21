@@ -106,6 +106,14 @@ cd backend
 python3 -m py_compile app/main.py
 ```
 
+### Backend Automated Tests
+```bash
+cd backend
+source .venv/bin/activate
+pytest tests -v
+```
+
+
 ### Check Running Endpoints
 ```bash
 curl -I http://localhost:8082/notebooks/

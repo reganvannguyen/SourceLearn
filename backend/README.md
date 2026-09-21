@@ -47,7 +47,12 @@ Refer to the [Root Setup Guide](../docs/setup-guide.md) for full instructions.
 # Start Database
 docker compose up -d
 
-# Start Server
-uvicorn app.main:app --host 0.0.0.0 --port 8082 --reload
+## Running Tests
+Run the automated pytest suite (using in-memory SQLite and offline mocks):
+```bash
+source .venv/bin/activate
+pytest tests -v
 ```
+
 Interactive documentation is available at `http://localhost:8082/docs`.
+
