@@ -8,6 +8,15 @@ Upload study materials, organize them into notebooks, ask questions across your 
 
 [**Live Demo**](https://d3kmtqljhqewdz.cloudfront.net) · [Architecture](docs/architecture.md) · [RAG Pipeline](docs/rag-pipeline.md) · [CI/CD Guide](docs/ci-cd-guide.md) · [AWS Guide](docs/aws-integration-guide.md)
 
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PostgreSQL + pgvector](https://img.shields.io/badge/PostgreSQL%20%2B%20pgvector-336791?style=flat&logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
+[![Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash-8E75B2?style=flat&logo=google&logoColor=white)](https://ai.google.dev/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
+[![AWS](https://img.shields.io/badge/AWS-232F3E?style=flat&logo=amazonwebservices&logoColor=white)](https://aws.amazon.com/)
+
 [![CI](https://github.com/reganvannguyen/SourceLearn/actions/workflows/ci.yml/badge.svg)](https://github.com/reganvannguyen/SourceLearn/actions/workflows/ci.yml)
 [![Deploy Frontend](https://github.com/reganvannguyen/SourceLearn/actions/workflows/deploy-frontend.yml/badge.svg)](https://github.com/reganvannguyen/SourceLearn/actions/workflows/deploy-frontend.yml)
 [![Deploy Backend](https://github.com/reganvannguyen/SourceLearn/actions/workflows/deploy-backend.yml/badge.svg)](https://github.com/reganvannguyen/SourceLearn/actions/workflows/deploy-backend.yml)
