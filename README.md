@@ -2,218 +2,311 @@
 
 # SourceLearn
 
-**Production-grade, citation-grounded AI study assistant and intelligent research notebook platform.**
+**A citation-grounded AI study assistant for turning course PDFs into searchable, source-linked conversations.**
 
-Organize course materials into nostalgic Hilroy-style notebooks, upload dense academic PDFs, and receive factual, hallucination-free answers with verifiable inline citations and split-screen document highlighting.
+Upload study materials, organize them into notebooks, ask questions across your documents, and jump directly from an AI citation to the supporting PDF page.
 
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![React 19](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![PostgreSQL + pgvector](https://img.shields.io/badge/PostgreSQL-pgvector-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
-[![Google Gemini](https://img.shields.io/badge/Gemini-2.5_Flash-8E75C2?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
+[**Live Demo**](https://d3kmtqljhqewdz.cloudfront.net) · [Architecture](docs/architecture.md) · [RAG Pipeline](docs/rag-pipeline.md) · [CI/CD Guide](docs/ci-cd-guide.md) · [AWS Guide](docs/aws-integration-guide.md)
 
-<br/>
-
-<img src="docs/assets/demo.gif" alt="SourceLearn Animated Demo" width="900" style="border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);" />
+[![CI](https://github.com/reganvannguyen/SourceLearn/actions/workflows/ci.yml/badge.svg)](https://github.com/reganvannguyen/SourceLearn/actions/workflows/ci.yml)
+[![Deploy Frontend](https://github.com/reganvannguyen/SourceLearn/actions/workflows/deploy-frontend.yml/badge.svg)](https://github.com/reganvannguyen/SourceLearn/actions/workflows/deploy-frontend.yml)
+[![Deploy Backend](https://github.com/reganvannguyen/SourceLearn/actions/workflows/deploy-backend.yml/badge.svg)](https://github.com/reganvannguyen/SourceLearn/actions/workflows/deploy-backend.yml)
 
 </div>
 
 ---
 
-## Why SourceLearn?
+## What SourceLearn Does
 
-Generic LLM chatbots frequently **hallucinate**, conflate disparate course concepts, and cannot prove where their statements originate. 
+SourceLearn is a full-stack Retrieval-Augmented Generation (RAG) application built around a simple workflow:
 
-**SourceLearn** solves this by enforcing a strict **Retrieval-Augmented Generation (RAG)** pipeline:
-- Every factual claim is bound to an exact document and page number with interactive inline citations.
-- If the uploaded PDFs do not contain enough evidence, the assistant explicitly states it cannot answer rather than fabricating facts.
-- Clicking any citation immediately opens an interactive split-screen PDF viewer, automatically jumping to the cited page and highlighting the exact passage.
+```text
+Upload PDFs
+    ↓
+Extract + chunk text
+    ↓
+Generate embeddings
+    ↓
+Store vectors in PostgreSQL + pgvector
+    ↓
+Ask a question
+    ↓
+Retrieve relevant source chunks
+    ↓
+Generate a grounded answer with citations
+    ↓
+Open the cited PDF page
+```
 
----
+The application is designed so that users can verify answers against the original material instead of treating the model response as an unsupported summary.
 
-## Key Capabilities
+## Key Features
 
 | Feature | Description |
-| :--- | :--- |
-| **Multi-Notebook Organization** | Group courses, syllabi, and lecture slides into custom notebooks with color palettes and course emblems inspired by iconic Canadian Hilroy exercise booklets. |
-| **Automated PDF Parsing & Indexing** | Ingests dense academic PDFs using PyMuPDF (`fitz`), recursively splits text preserving page-level metadata, and indexes dense vector embeddings into PostgreSQL. |
-| **Vector Cosine Search (pgvector)** | Performs low-latency similarity search directly within PostgreSQL, co-locating relational data and vector embeddings for transactional consistency. |
-| **Grounded Multi-Turn Chat** | Conversational Q&A powered by Google Gemini 2.5 Flash, returning schema-validated answers with structured inline citations. |
-| **Split-Screen In-Document Highlighting** | Canvas-based PDF viewer that synchronizes with chat citations, jumping to the exact page and visually highlighting cited passages. |
-| **Smart Query Condensation** | Heuristic-driven conversational query rewriter that detects follow-up questions vs. standalone queries, saving 60%+ in LLM latency and API quota. |
-| **Zero-Orphan Cascade Deletions** | Deleting documents or notebooks atomically purges vector chunks, relational records, and physical disk files. |
-| **Client-Side Page Routing** | Full SPA routing via React Router 7 with shareable URLs (`/notebooks/:id`), page-refresh persistence, and custom 404 handling. |
+| --- | --- |
+| **Notebook organization** | Create notebooks for courses or topics and organize uploaded study material in one place. |
+| **PDF ingestion** | Extracts PDF text with PyMuPDF, chunks it by page, generates embeddings, and stores them in pgvector. |
+| **Citation-grounded Q&A** | Retrieves relevant chunks before generating an answer and returns citations tied to the source document and page. |
+| **Interactive PDF viewer** | Open a citation directly in the corresponding PDF and inspect the supporting material. |
+| **Multi-turn chat** | Maintains notebook-specific conversation history and supports follow-up questions. |
+| **Private S3 document storage** | Uploaded PDFs are stored in a private S3 bucket rather than on the EC2 filesystem. |
+| **Automated CI/CD** | GitHub Actions tests the application and deploys frontend/backend changes to AWS. |
 
 ---
 
-## System Architecture & RAG Pipeline
+## Architecture
+
+### Application + AWS Deployment
 
 ```mermaid
-graph TD
-    subgraph Client ["Client Layer (Browser)"]
-        UI["React 19 SPA (React Router 7)"]
-        CanvasViewer["Canvas PDF Viewer & Highlight"]
+flowchart LR
+    U["User Browser"]
+
+    subgraph AWS["AWS"]
+        CFF["CloudFront\nFrontend"]
+        S3F[("Private S3\nReact/Vite Build")]
+
+        CFB["CloudFront\nBackend API"]
+
+        subgraph EC2["EC2"]
+            API["FastAPI"]
+            DB[("PostgreSQL 17\n+ pgvector")]
+        end
+
+        S3D[("Private S3\nUploaded PDFs")]
     end
 
-    subgraph Backend ["FastAPI Application (Port 8000)"]
-        API["FastAPI REST Endpoints"]
-        Ingest["PyMuPDF Document Ingestor"]
-        Splitter["Recursive Text Chunking"]
-        Heuristic{"Follow-up Heuristic"}
-        Rewriter["Query Condensation Engine"]
-        Retriever["pgvector Retrieval Engine"]
-        Synthesizer["Citation-Grounded Generator"]
-    end
+    GEMINI["Google Gemini API"]
 
-    subgraph Storage ["Persistence Layer (Docker)"]
-        PGVector[("PostgreSQL 16 + pgvector")]
-        FileStore[("Local File Storage (/uploads)")]
-    end
+    U -->|"HTTPS"| CFF
+    CFF --> S3F
 
-    subgraph AI ["AI Services"]
-        GeminiFlash["Google Gemini 2.5 Flash"]
-    end
+    U -->|"HTTPS API requests"| CFB
+    CFB -->|"HTTP :8000"| API
 
-    UI -->|1. Upload PDF| API
-    API --> Ingest
-    Ingest -->|Save binary| FileStore
-    Ingest --> Splitter
-    Splitter -->|Generate 768-dim embeddings| PGVector
+    API --> DB
+    API -->|"PDF upload/read/delete"| S3D
+    API -->|"Embeddings + generation"| GEMINI
+```
 
-    UI -->|2. Ask Question| API
-    API --> Heuristic
-    Heuristic -->|Needs Context| Rewriter
-    Rewriter <-->|Condense Query| GeminiFlash
-    Heuristic -->|Standalone| Retriever
-    Rewriter --> Retriever
-    Retriever <-->|Cosine Similarity Search| PGVector
-    Retriever --> Synthesizer
-    Synthesizer <-->|Context + Strict Citation Prompt| GeminiFlash
-    Synthesizer -->|Structured JSON + Citations| UI
-    UI -->|"3. Click Citation (e.g. p. 11)"| CanvasViewer
+### RAG Request Flow
+
+```mermaid
+flowchart TD
+    PDF["PDF Upload"] --> S3["Store PDF in S3"]
+    PDF --> EXTRACT["Extract text with PyMuPDF"]
+    EXTRACT --> CHUNK["Chunk text with page metadata"]
+    CHUNK --> EMBED["Generate embeddings"]
+    EMBED --> VECTOR[("PostgreSQL + pgvector")]
+
+    Q["User Question"] --> RETRIEVE["Vector similarity search"]
+    VECTOR --> RETRIEVE
+    RETRIEVE --> CONTEXT["Relevant source chunks"]
+    CONTEXT --> LLM["Gemini 2.5 Flash"]
+    LLM --> ANSWER["Grounded answer + citations"]
+    ANSWER --> VIEWER["Click citation → PDF page"]
 ```
 
 ---
 
-## Engineering Highlights & Design Decisions
+## CI/CD
 
-<details open>
-<summary><b>1. Why PostgreSQL + pgvector Over Standalone Vector Databases?</b></summary>
-<br/>
-Rather than managing a separate vector database (e.g. Pinecone or Milvus), SourceLearn leverages <b><code>pgvector</code></b> inside PostgreSQL. This guarantees <b>ACID transactional integrity</b>: when a user removes a document or deletes a notebook, foreign key constraints (<code>ON DELETE CASCADE</code>) immediately and atomically purge all embeddings and chunks. There is zero risk of orphaned vector records or desynchronization between relational metadata and embeddings.
-</details>
+SourceLearn uses GitHub Actions for both continuous integration and continuous deployment.
 
-<details open>
-<summary><b>2. Conversational Query Condensation with Lexical Heuristic</b></summary>
-<br/>
-In multi-turn chat, queries like <i>"Why does it do that?"</i> must be rewritten with conversation history to perform semantic search. However, calling an LLM to rewrite <i>every</i> question adds latency and burns API tokens. SourceLearn implements a lexical heuristic (<code>is_likely_followup</code>) that inspects relative pronouns and starters. Standalone questions (e.g. <i>"What is an operating system kernel?"</i>) bypass condensation entirely, slashing token usage and latency by over 60%.
-</details>
+```mermaid
+flowchart LR
+    CODE["Push / Pull Request"] --> CI["GitHub Actions CI"]
 
-<details open>
-<summary><b>3. In-Document Canvas Synchronization & Deep Linking</b></summary>
-<br/>
-Standard AI chat applications return plain text citations. SourceLearn coordinates the backend citation metadata with a custom frontend PDF canvas viewer. When a user clicks a citation badge, the viewer loads the binary document stream, jumps to the exact page, and applies an amber overlay box directly over the retrieved source passage.
-</details>
+    CI --> BT["Backend\nPytest"]
+    CI --> FT["Frontend\nTypeScript + Vitest"]
+
+    MAIN["Push to main"] --> FCD["Frontend CD"]
+    MAIN --> BCD["Backend CD"]
+
+    FCD --> OIDC1["AWS OIDC"]
+    OIDC1 --> S3["S3 Sync"]
+    S3 --> CF["CloudFront Invalidation"]
+
+    BCD --> OIDC2["AWS OIDC"]
+    OIDC2 --> SSM["Systems Manager"]
+    SSM --> EC2D["EC2 Git Update +\nDocker Compose Rebuild"]
+```
+
+### Frontend deployment
+
+```text
+main
+→ TypeScript + Vitest
+→ Vite production build
+→ GitHub OIDC
+→ S3 sync
+→ CloudFront invalidation
+```
+
+### Backend deployment
+
+```text
+main
+→ Pytest
+→ GitHub OIDC
+→ AWS Systems Manager Run Command
+→ EC2 updates repository
+→ Docker Compose rebuild
+→ deployment verification
+```
+
+GitHub does not store long-lived AWS access keys or the EC2 SSH private key. Deployment access is provided through an IAM role assumed with GitHub OIDC.
+
+See [docs/ci-cd-guide.md](docs/ci-cd-guide.md) for the full deployment walkthrough.
 
 ---
 
-## Tech Stack Breakdown
+## Tech Stack
 
 | Layer | Technologies |
-| :--- | :--- |
-| **Frontend** | React 19, TypeScript, React Router 7, Vite, Vanilla CSS Design System, HTML5 Canvas |
-| **Backend** | Python 3.11+, FastAPI, SQLAlchemy 2.0, Pydantic v2, Uvicorn, psycopg3 |
-| **Database** | PostgreSQL 16, pgvector (vector cosine similarity search) |
-| **AI / RAG** | Google Gemini 2.5 Flash (`google-genai`), PyMuPDF (`fitz`), LangChain Splitters |
-| **DevOps** | Docker, Docker Compose, Bash orchestration (`start.sh`) |
+| --- | --- |
+| **Frontend** | React, TypeScript, Vite, React Router |
+| **Backend** | Python, FastAPI, SQLAlchemy, Pydantic |
+| **Database** | PostgreSQL 17, pgvector |
+| **AI / RAG** | Gemini 2.5 Flash, Gemini embeddings, PyMuPDF |
+| **Storage** | Amazon S3 |
+| **Hosting** | Amazon EC2, CloudFront |
+| **Infrastructure / DevOps** | Docker, Docker Compose, GitHub Actions, AWS IAM, OIDC, Systems Manager |
 
 ---
 
-## Quickstart
+## AWS Design
 
-### 1. Prerequisites
-- [Docker & Docker Compose](https://www.docker.com/)
-- [Python 3.11+](https://python.org)
-- [Node.js 20+](https://nodejs.org)
-- [Google Gemini API Key](https://aistudio.google.com/)
+SourceLearn separates application responsibilities across AWS services:
 
-### 2. Fast Launch (1-Command Orchestration)
-Clone the repository and run the startup script:
+```text
+S3 document bucket
+  → private uploaded PDFs
+
+S3 frontend bucket
+  → compiled React/Vite assets
+
+CloudFront frontend distribution
+  → HTTPS delivery of the web application
+
+CloudFront backend distribution
+  → HTTPS API endpoint
+
+EC2
+  → FastAPI
+  → PostgreSQL + pgvector
+  → Docker Compose
+
+EC2 IAM role
+  → document S3 access
+  → Systems Manager managed-instance access
+
+GitHub Actions IAM role
+  → assumed through OIDC
+  → frontend S3/CloudFront deployment
+  → backend SSM deployment
+```
+
+The application uses boto3's normal AWS credential chain, allowing local development to use local credentials while EC2 uses an IAM role without changing backend code.
+
+---
+
+## Local Development
+
+### Prerequisites
+
+- Docker + Docker Compose
+- Python 3.12
+- Node.js 22
+- Google Gemini API key
+- AWS credentials with access to the configured development S3 bucket
+
+### Backend environment
+
+Create a local backend `.env` from the example file and configure values such as:
+
+```env
+GEMINI_API_KEY=your_key
+AWS_REGION=ca-central-1
+S3_BUCKET_NAME=your_document_bucket
+```
+
+Local AWS credentials should remain outside source control.
+
+### Start the application
 
 ```bash
 git clone https://github.com/reganvannguyen/SourceLearn.git
 cd SourceLearn
-
-# Make executable and run
 chmod +x start.sh
 ./start.sh
 ```
 
-The script automatically:
-1. Validates local dependencies.
-2. Spins up PostgreSQL with `pgvector` in Docker on port `5432`.
-3. Launches the FastAPI backend on port `8000`.
-4. Starts the Vite React frontend on port `5173`.
+The development frontend runs at:
 
-Open **http://localhost:5173** in your browser.
+```text
+http://localhost:5173
+```
 
-> Press `Ctrl+C` in your terminal to cleanly stop all services and containers.
+FastAPI runs at:
 
----
-
-## In-Depth Documentation
-
-Comprehensive deep-dives are organized in the [`docs/`](docs/) directory:
-
-- **[System Architecture](docs/architecture.md)** — Relational & vector schema, ER diagrams, cascading integrity, and component hierarchy.
-- **[RAG Pipeline Deep Dive](docs/rag-pipeline.md)** — Document parsing, recursive chunking parameters, cosine retrieval, follow-up heuristics, and citation grammar.
-- **[REST API Reference](docs/api-reference.md)** — Complete OpenAPI specification with request/response schemas and curl examples.
-- **[Local Setup & Troubleshooting](docs/setup-guide.md)** — Manual step-by-step installation, Docker volume management, and troubleshooting FAQ.
+```text
+http://localhost:8000
+```
 
 ---
 
 ## Repository Structure
 
-```
+```text
 SourceLearn/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml
+│       ├── deploy-frontend.yml
+│       └── deploy-backend.yml
 ├── backend/
 │   ├── app/
-│   │   ├── api/             # REST endpoints (notebooks, documents, messages)
-│   │   ├── db/              # SQLAlchemy session & database engine
-│   │   ├── models/          # ORM models (Notebook, Document, DocumentChunk, Message)
-│   │   ├── schemas/         # Pydantic request & response models
-│   │   ├── services/        # PyMuPDF extraction, chunking, embeddings, RAG & LLM
-│   │   └── main.py          # FastAPI application entrypoint
-│   ├── docker-compose.yml   # PostgreSQL + pgvector container definition
-│   ├── requirements.txt     # Backend dependencies
-│   └── .env.example         # Environment template
+│   │   ├── api/
+│   │   ├── db/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   └── services/
+│   ├── docker-compose.yml
+│   └── docker-compose.prod.yml
 ├── frontend/
-│   ├── src/
-│   │   ├── api/             # Typed API clients
-│   │   ├── components/      # Hilroy booklet cards, PDF viewer, chat pane, modals
-│   │   ├── pages/           # NotebooksPage, StudyPage, NotFoundPage
-│   │   ├── App.tsx          # React Router 7 configuration
-│   │   └── App.css          # Design system & responsive layout styles
-│   ├── vite.config.ts       # Vite bundler configuration
-│   └── package.json         # Frontend dependencies (React 19, Router 7)
+│   └── src/
 ├── docs/
-│   ├── assets/              # Animated demo GIF, WebP, and feature screenshots
-│   ├── architecture.md      # Comprehensive architecture & design document
-│   ├── rag-pipeline.md      # RAG pipeline & vector search specification
-│   ├── api-reference.md     # REST API specification
-│   └── setup-guide.md       # Step-by-step developer guide
-├── scripts/
-│   ├── capture_interactive.mjs # Interactive headless Chrome capture
-│   └── generate_assets.py      # Automated screenshot & demo GIF compiler
-├── start.sh                 # Unified 1-command startup orchestration
-└── README.md                # Project showcase & portfolio overview
+│   ├── architecture.md
+│   ├── rag-pipeline.md
+│   ├── api-reference.md
+│   ├── setup-guide.md
+│   ├── aws-integration-guide.md
+│   └── ci-cd-guide.md
+└── README.md
 ```
+
+---
+
+## Documentation
+
+- [System Architecture](docs/architecture.md)
+- [RAG Pipeline](docs/rag-pipeline.md)
+- [REST API Reference](docs/api-reference.md)
+- [Local Setup & Troubleshooting](docs/setup-guide.md)
+- [AWS Integration Guide](docs/aws-integration-guide.md)
+- [CI/CD Guide](docs/ci-cd-guide.md)
+
+---
+
+## Live Deployment
+
+**Frontend:** https://d3kmtqljhqewdz.cloudfront.net
+
+The production deployment is intended as a portfolio/demo environment. Uploaded documents are stored in the configured private S3 bucket.
 
 ---
 
 ## License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License. See [LICENSE](LICENSE).
