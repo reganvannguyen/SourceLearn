@@ -45,7 +45,7 @@ async def test_extract_pdf_from_bytes(sample_pdf_bytes):
 
 def test_highlight_pdf_snippet_exact(sample_pdf_bytes):
     highlighted = highlight_pdf_snippet(
-        file_path=sample_pdf_bytes,
+        pdf_source=sample_pdf_bytes,
         page_number=1,
         snippet="Fast RAG assistant",
         color_hex="#ff0000",

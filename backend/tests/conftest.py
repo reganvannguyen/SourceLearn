@@ -2,8 +2,12 @@ import os
 import sys
 from pathlib import Path
 
-# Ensure dummy GEMINI_API_KEY is configured before any app modules are imported
+# Ensure dummy GEMINI_API_KEY and AWS credentials are configured before any app modules are imported
 os.environ.setdefault("GEMINI_API_KEY", "mock-test-gemini-key")
+os.environ.setdefault("AWS_REGION", "ca-central-1")
+os.environ.setdefault("S3_BUCKET_NAME", "mock-test-bucket")
+os.environ.setdefault("AWS_ACCESS_KEY_ID", "mock-access-key")
+os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "mock-secret-key")
 
 import pytest
 from unittest.mock import MagicMock, patch

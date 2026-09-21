@@ -69,3 +69,22 @@ def test_delete_notebook(client):
     check_res = client.get(f"/notebooks/{notebook_id}")
     assert check_res.status_code == 404
 
+
+def test_delete_notebook_with_documents(client, db_session):
+    from unittest.mock import patch, MagicMock
+    from app.models.document import Document
+
+    res = client.post("/notebooks/", json={"name": "Notebook With Docs"})
+    notebook_id = res.json()["id"]
+
+    doc = Document(notebook_id=notebook_id, file_name="sample.pdf", s3_key="notebooks/1/sample.pdf")
+    db_session.add(doc)
+    db_session.commit()
+
+    mock_delete = MagicMock()
+    with patch("app.api.notebooks.delete_file", mock_delete):
+        del_res = client.delete(f"/notebooks/{notebook_id}")
+        assert del_res.status_code == 200
+        assert del_res.json()["success"] is True
+        mock_delete.assert_called_once_with("notebooks/1/sample.pdf")
+

@@ -23,10 +23,7 @@ def init_db():
         )
         connection.execute(
             text("ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS icon VARCHAR(50) DEFAULT 'book'")
-        )
-        connection.execute(
-            text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_path VARCHAR DEFAULT ''")
-        )
+        ) 
 
 
 

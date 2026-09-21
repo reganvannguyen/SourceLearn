@@ -12,3 +12,4 @@ pathlib
 psycopg
 psycopg[binary]
 python-multipart
+boto3

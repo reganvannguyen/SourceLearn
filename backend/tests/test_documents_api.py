@@ -1,5 +1,4 @@
 import io
-from pathlib import Path
 from unittest.mock import patch, AsyncMock, MagicMock
 import pytest
 from app.models.document import Document
@@ -25,7 +24,7 @@ def test_get_documents_empty_and_populated(client, db_session):
     assert res.json() == []
 
     # Add a document
-    doc = Document(notebook_id=nb.id, file_name="mitosis.pdf", file_path="/fake/path/mitosis.pdf")
+    doc = Document(notebook_id=nb.id, file_name="mitosis.pdf", s3_key="notebooks/1/documents/mitosis.pdf")
     db_session.add(doc)
     db_session.commit()
 
@@ -37,7 +36,7 @@ def test_get_documents_empty_and_populated(client, db_session):
     assert docs[0]["notebook_id"] == nb.id
 
 
-def test_upload_document(client, db_session, tmp_path):
+def test_upload_document(client, db_session):
     nb = Notebook(name="Physics")
     db_session.add(nb)
     db_session.commit()
@@ -46,10 +45,11 @@ def test_upload_document(client, db_session, tmp_path):
     mock_extract = AsyncMock(return_value=[{"page_number": 1, "text": "Quantum mechanics basics"}])
     mock_chunk = MagicMock(return_value=[{"page_number": 1, "text": "Quantum mechanics basics"}])
     mock_embed = MagicMock(return_value=[{"page_number": 1, "text": "Quantum mechanics basics", "embedding": [0.0] * 768}])
+    mock_upload = MagicMock()
 
     fake_pdf = b"%PDF-1.4 test file content"
 
-    with patch("app.api.documents.UPLOAD_DIR", tmp_path), \
+    with patch("app.api.documents.upload_file", mock_upload), \
          patch("app.api.documents.extract_pdf", mock_extract), \
          patch("app.api.documents.chunk_pages", mock_chunk), \
          patch("app.api.documents.embed_chunks", mock_embed):
@@ -65,52 +65,51 @@ def test_upload_document(client, db_session, tmp_path):
         assert data["notebook_id"] == nb.id
         assert "document_id" in data
 
-        # Check file was saved in tmp_path
-        saved_files = list(tmp_path.glob("*quantum.pdf"))
-        assert len(saved_files) == 1
-        assert saved_files[0].read_bytes() == fake_pdf
+        # Check S3 upload was invoked with file bytes and s3_key
+        mock_upload.assert_called_once()
+        args, kwargs = mock_upload.call_args
+        assert args[0] == fake_pdf
+        assert "notebooks/" in args[1]
+        assert "quantum.pdf" in args[1]
 
 
-def test_get_document_file(client, db_session, tmp_path):
+def test_get_document_file(client, db_session):
     nb = Notebook(name="Chemistry")
     db_session.add(nb)
     db_session.commit()
     db_session.refresh(nb)
 
-    doc_file = tmp_path / "sample.pdf"
-    doc_file.write_bytes(b"%PDF-1.4 chemistry text")
-
-    doc = Document(notebook_id=nb.id, file_name="sample.pdf", file_path=str(doc_file))
+    doc = Document(notebook_id=nb.id, file_name="sample.pdf", s3_key="notebooks/1/documents/sample.pdf")
     db_session.add(doc)
     db_session.commit()
     db_session.refresh(doc)
 
-    res = client.get(f"/documents/{doc.id}/file")
-    assert res.status_code == 200
-    assert res.content == b"%PDF-1.4 chemistry text"
+    fake_bytes = b"%PDF-1.4 chemistry text"
+    with patch("app.api.documents.get_file", return_value=fake_bytes):
+        res = client.get(f"/documents/{doc.id}/file")
+        assert res.status_code == 200
+        assert res.content == fake_bytes
 
 
-def test_delete_document(client, db_session, tmp_path):
+def test_delete_document(client, db_session):
     nb = Notebook(name="History")
     db_session.add(nb)
     db_session.commit()
     db_session.refresh(nb)
 
-    doc_file = tmp_path / "ancient.pdf"
-    doc_file.write_bytes(b"%PDF-1.4 ancient history")
-
-    doc = Document(notebook_id=nb.id, file_name="ancient.pdf", file_path=str(doc_file))
+    doc = Document(notebook_id=nb.id, file_name="ancient.pdf", s3_key="notebooks/1/documents/ancient.pdf")
     db_session.add(doc)
     db_session.commit()
     db_session.refresh(doc)
 
-    del_res = client.delete(f"/documents/{doc.id}")
-    assert del_res.status_code == 200
-    assert del_res.json()["success"] is True
+    mock_delete = MagicMock()
+    with patch("app.api.documents.delete_file", mock_delete):
+        del_res = client.delete(f"/documents/{doc.id}")
+        assert del_res.status_code == 200
+        assert del_res.json()["success"] is True
 
-    # Confirm file removed
-    assert not doc_file.exists()
+        # Confirm S3 delete was called
+        mock_delete.assert_called_once_with("notebooks/1/documents/ancient.pdf")
 
-    # Confirm record removed
-    assert db_session.get(Document, doc.id) is None
-
+        # Confirm record removed from database
+        assert db_session.get(Document, doc.id) is None

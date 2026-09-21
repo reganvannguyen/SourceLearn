@@ -84,7 +84,7 @@ erDiagram
         int id PK
         int notebook_id FK
         string file_name
-        string file_path
+        string s3_key
         timestamp upload_date
     }
 
@@ -121,7 +121,7 @@ Represents an uploaded source PDF file associated with a notebook.
 - `id` (Integer, Primary Key, autoincrement)
 - `notebook_id` (Integer, Foreign Key &rarr; `notebooks.id` with `CASCADE` delete)
 - `file_name` (String, original client filename)
-- `file_path` (String, local path under `/uploads`)
+- `s3_key` (String, AWS S3 object key `notebooks/{id}/documents/{file}`)
 - `upload_date` (DateTime, UTC timestamp)
 
 #### `document_chunks` Table
@@ -170,8 +170,8 @@ Unlike conventional AI chat apps that merely display a page number, SourceLearn 
 To prevent disk bloating and orphaned database records:
 - **Notebook Deletion**:
   1. Retrieves all associated documents.
-  2. Unlinks physical PDF files on disk (`os.remove(doc.file_path)`).
+  2. Deletes physical PDF objects from AWS S3 (`delete_file(doc.s3_key)`).
   3. Executes a single cascading SQL delete that purges documents, chunks, vectors, and message history.
 - **Document Removal**:
-  1. Deletes physical PDF file from the disk.
+  1. Deletes physical PDF object from AWS S3 (`delete_file(doc.s3_key)`).
   2. Cascading foreign keys drop all chunks and vector embeddings immediately.

@@ -1,4 +1,3 @@
-from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -8,6 +7,7 @@ from app.models.document_chunk import DocumentChunk
 from app.models.message import Message
 from app.models.notebook import Notebook
 from app.schemas.notebook import NotebookCreate, NotebookResponse, NotebookUpdate
+from app.services.s3_service import delete_file
 
 router = APIRouter(prefix="/notebooks", tags=["notebooks"])
 
@@ -79,12 +79,13 @@ def delete_notebook(notebook_id: int, db: Session = Depends(get_db)):
         chunk_stmt = delete(DocumentChunk).where(DocumentChunk.document_id.in_(doc_ids))
         db.execute(chunk_stmt)
 
-    # 3. Clean up physical PDF files from disk
+    # 3. Clean up physical PDF files from S3
     for doc in documents:
-        if doc.file_path:
-            saved_file = Path(doc.file_path)
-            if saved_file.exists():
-                saved_file.unlink(missing_ok=True)
+        if doc.s3_key:
+            try:
+                delete_file(doc.s3_key)
+            except Exception as e:
+                print(f"Warning: Failed to delete S3 object {doc.s3_key}: {e}")
 
     # 4. Delete document records
     if doc_ids:

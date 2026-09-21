@@ -47,16 +47,16 @@ async def extract_pdf(file: Union[UploadFile, bytes]) -> list[dict]:
 
 
 def highlight_pdf_snippet(
-    file_path: Union[str, bytes],
+    pdf_source: Union[str, bytes],
     page_number: int,
     snippet: str,
     color_hex: Optional[str] = "#fde047",
 ) -> bytes:
     """Highlight the cited snippet on the specified page of the PDF in memory."""
-    if isinstance(file_path, bytes):
-        doc = fitz.open(stream=file_path, filetype="pdf")
+    if isinstance(pdf_source, bytes):
+        doc = fitz.open(stream=pdf_source, filetype="pdf")
     else:
-        doc = fitz.open(file_path)
+        doc = fitz.open(pdf_source)
 
     try:
         if page_number < 1 or page_number > len(doc):

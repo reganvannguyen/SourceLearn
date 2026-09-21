@@ -1,10 +1,8 @@
-import os
-from pathlib import Path
 import re
 import uuid
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from app.db.database import get_db
@@ -15,12 +13,9 @@ from app.schemas.document import DocumentResponse
 from app.services.chunking_service import chunk_pages
 from app.services.embedding_service import embed_chunks
 from app.services.pdf_service import extract_pdf, highlight_pdf_snippet
+from app.services.s3_service import upload_file, get_file, delete_file
 
 router = APIRouter(tags=["documents"])
-
-# Ensure uploads directory exists
-UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", Path(__file__).resolve().parent.parent.parent / "uploads"))
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 
@@ -54,14 +49,19 @@ def get_document_file(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    if not document.file_path or not Path(document.file_path).exists():
-        raise HTTPException(status_code=404, detail="PDF file content not found on server")
+    if not document.s3_key:
+        raise HTTPException(status_code=404, detail="PDF file content not found in S3")
+
+    try:
+        pdf_bytes = get_file(document.s3_key)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"PDF file could not be retrieved from S3: {e}")
 
     # If page and snippet are provided, dynamically highlight and stream PDF in memory
     if page and snippet and snippet.strip():
         try:
             highlighted_bytes = highlight_pdf_snippet(
-                file_path=document.file_path,
+                pdf_source=pdf_bytes,
                 page_number=page,
                 snippet=snippet,
                 color_hex=color or "#fde047",
@@ -78,11 +78,13 @@ def get_document_file(
             # Fall back to raw file if highlighting fails
             print(f"Highlighting failed, falling back to original file: {e}")
 
-    return FileResponse(
-        path=document.file_path,
+    return Response(
+        content=pdf_bytes,
         media_type="application/pdf",
-        filename=document.file_name,
-        headers={"Content-Disposition": f'inline; filename="{document.file_name}"'},
+        headers={
+            "Content-Disposition": f'inline; filename="{document.file_name}"',
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+        },
     )
 
 
@@ -93,19 +95,24 @@ async def upload_document(
     db: Session = Depends(get_db),
 ):
     notebook = db.get(Notebook, notebook_id)
+
     if not notebook:
         raise HTTPException(status_code=404, detail="Notebook not found")
 
     original_name = file.filename or "uploaded.pdf"
     file_bytes = await file.read()
 
-    # Save PDF file to disk
     safe_name = re.sub(r"[^\w\-.]", "_", original_name)
     stored_filename = f"{uuid.uuid4().hex}_{safe_name}"
-    saved_path = UPLOAD_DIR / stored_filename
-    saved_path.write_bytes(file_bytes)
 
-    # Process chunks & embeddings
+    s3_key = f"notebooks/{notebook_id}/documents/{stored_filename}"
+
+    upload_file(
+        file_bytes,
+        s3_key,
+        content_type=file.content_type or "application/pdf",
+    )
+
     pages = await extract_pdf(file_bytes)
     chunks = chunk_pages(pages)
     embedded_chunks = embed_chunks(chunks)
@@ -114,11 +121,12 @@ async def upload_document(
         document = Document(
             file_name=original_name,
             notebook_id=notebook_id,
-            file_path=str(saved_path),
+            s3_key=s3_key,
         )
 
         db.add(document)
         db.flush()
+
         for chunk in embedded_chunks:
             output = DocumentChunk(
                 page_number=chunk["page_number"],
@@ -126,6 +134,7 @@ async def upload_document(
                 text=chunk["text"],
                 embedding=chunk["embedding"],
             )
+
             db.add(output)
 
         db.commit()
@@ -139,9 +148,7 @@ async def upload_document(
 
     except Exception:
         db.rollback()
-        # Clean up file on disk if DB insert fails
-        if saved_path.exists():
-            saved_path.unlink(missing_ok=True)
+        delete_file(s3_key)
         raise
 
 
@@ -156,11 +163,12 @@ def delete_document(document_id: int, db: Session = Depends(get_db)):
     chunk_res = db.execute(chunk_stmt)
     deleted_chunks = chunk_res.rowcount
 
-    # Delete file from uploads directory if exists
-    if doc.file_path:
-        saved_file = Path(doc.file_path)
-        if saved_file.exists():
-            saved_file.unlink(missing_ok=True)
+    # Delete file from S3 bucket if s3_key exists
+    if doc.s3_key:
+        try:
+            delete_file(doc.s3_key)
+        except Exception as e:
+            print(f"Warning: Failed to delete S3 object {doc.s3_key}: {e}")
 
     # Delete document record
     doc_stmt = delete(Document).where(Document.id == document_id)
