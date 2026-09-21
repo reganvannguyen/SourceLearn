@@ -1,6 +1,5 @@
 pymupdf
 langchain-text-splitters
-sentence-transformers
 google-genai
 tiktoken
 python-dotenv
