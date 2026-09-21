@@ -50,6 +50,18 @@ jobs:
           VITE_API_URL: https://d3m9heta2nt65x.cloudfront.net
         run: npm run build
 
+      - name: Show OIDC claims
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('sts.amazonaws.com');
+            const payload = JSON.parse(
+              Buffer.from(token.split('.')[1], 'base64url').toString()
+            );
+            core.info(`iss: ${payload.iss}`);
+            core.info(`aud: ${payload.aud}`);
+            core.info(`sub: ${payload.sub}`);
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
