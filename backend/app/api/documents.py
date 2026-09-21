@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import re
 import uuid
@@ -18,8 +19,9 @@ from app.services.pdf_service import extract_pdf, highlight_pdf_snippet
 router = APIRouter(tags=["documents"])
 
 # Ensure uploads directory exists
-UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", Path(__file__).resolve().parent.parent.parent / "uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
 
 
 @router.get("/notebooks/{notebook_id}/documents", response_model=list[DocumentResponse])

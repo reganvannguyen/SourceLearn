@@ -35,39 +35,28 @@ chmod +x start.sh
 
 If you prefer running services independently in separate terminal windows:
 
-### Step 1: Start PostgreSQL + pgvector
+### Step 1: Start PostgreSQL + FastAPI with Docker Compose
+Inside `backend/`:
 ```bash
 cd backend
-docker compose up -d
+docker compose up -d --build
 ```
-Verify the container is healthy:
+Verify the containers are healthy and running:
 ```bash
 docker ps
 ```
-The database runs on port `5433` (avoiding conflicts with any default system PostgreSQL running on `5432`).
+- PostgreSQL: `localhost:5432`
+- FastAPI backend: `http://localhost:8082` (interactive docs: `http://localhost:8082/docs`)
+- Adminer database GUI: `http://localhost:8080`
 
 ### Step 2: Configure Environment Variables
 Inside `backend/`:
-Create a `.env` file (or copy `.env.example`):
+Ensure `.env` exists with your Gemini API key:
 ```bash
-DATABASE_URL=postgresql://user:password@localhost:5433/study_assistant
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
+*(Optionally override `DATABASE_URL` if running outside Docker).*
 
-### Step 3: Install Backend Dependencies & Start FastAPI
-```bash
-cd backend
-
-# Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start backend server
-uvicorn app.main:app --host 0.0.0.0 --port 8082 --reload
-```
 
 ### Step 4: Install Frontend Dependencies & Start Vite
 ```bash
