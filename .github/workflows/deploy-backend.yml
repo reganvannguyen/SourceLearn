@@ -3,7 +3,7 @@ name: Deploy Backend
 on:
   push:
     branches:
-      - aws-integration
+      - main
     paths:
       - "backend/**"
       - ".github/workflows/deploy-backend.yml"
