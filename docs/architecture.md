@@ -85,7 +85,6 @@ erDiagram
         int notebook_id FK
         string file_name
         string s3_key
-        timestamp upload_date
     }
 
     DOCUMENT_CHUNK {
@@ -122,7 +121,6 @@ Represents an uploaded source PDF file associated with a notebook.
 - `notebook_id` (Integer, Foreign Key &rarr; `notebooks.id`)
 - `file_name` (String, original client filename)
 - `s3_key` (String, AWS S3 object key `notebooks/{id}/documents/{file}`)
-- `upload_date` (DateTime, UTC timestamp)
 
 #### `document_chunks` Table
 Stores parsed text segments along with dense vector embeddings for nearest-neighbor similarity search.
@@ -178,3 +176,6 @@ To prevent orphaned S3 objects and database inconsistency:
   3. Purges all associated `document_chunks` vector embeddings.
   4. Deletes all document records and chat messages.
   5. Deletes the notebook record itself in a clean transaction.
+
+> [!NOTE]
+> AWS S3 object storage and PostgreSQL cannot participate in a single atomic two-phase commit. SourceLearn minimizes failure risk by deleting S3 objects prior to executing SQL deletions and explicitly invoking `db.rollback()` if an S3 delete fails midway.
