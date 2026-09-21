@@ -12,6 +12,10 @@ Upload study materials, organize them into notebooks, ask questions across your 
 [![Deploy Frontend](https://github.com/reganvannguyen/SourceLearn/actions/workflows/deploy-frontend.yml/badge.svg)](https://github.com/reganvannguyen/SourceLearn/actions/workflows/deploy-frontend.yml)
 [![Deploy Backend](https://github.com/reganvannguyen/SourceLearn/actions/workflows/deploy-backend.yml/badge.svg)](https://github.com/reganvannguyen/SourceLearn/actions/workflows/deploy-backend.yml)
 
+<br/>
+
+<img src="docs/assets/demo.gif" alt="SourceLearn Animated Demo" width="900" style="border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);" />
+
 </div>
 
 ---
