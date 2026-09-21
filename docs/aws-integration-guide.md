@@ -558,13 +558,7 @@ After replacing frontend files in S3, invalidate CloudFront with:
 
 so users receive the newest `index.html` and JS bundle.
 
-Later, CD should automate this with something like:
-
-```bash
-aws s3 sync dist/ s3://sourcelearn-frontend-2026 --delete
-```
-
-followed by a CloudFront invalidation.
+The frontend CD workflow automates this with an S3 sync using `--delete`, followed by a CloudFront invalidation so stale Vite assets and cached frontend files are cleaned up automatically.
 
 ---
 
@@ -675,9 +669,9 @@ Local development still works, while the deployed frontend can call the deployed
 
 ---
 
-# 16. Updating the deployed backend manually
+# 16. Manual backend deployment fallback
 
-Until CD is added, the manual backend deployment flow is:
+The normal deployment path is GitHub Actions CD. If an automated deployment ever needs to be reproduced manually, the equivalent backend flow is:
 
 ```bash
 ssh -i sourcelearn-ec2.pem ubuntu@<EC2_PUBLIC_IP>
@@ -700,9 +694,9 @@ docker logs sourcelearn-backend
 
 ---
 
-# 17. Updating the deployed frontend manually
+# 17. Manual frontend deployment fallback
 
-Until CD is added:
+The normal deployment path is GitHub Actions CD. If the frontend ever needs to be deployed manually:
 
 ```bash
 cd frontend
@@ -788,29 +782,6 @@ Citation PDF viewing                        [x]
 Delete PDF and remove S3 object              [x]
 ```
 
----
-
-# 21. What is still left
-
-The big next step is **continuous deployment**.
-
-Right now deployments still require manual work:
-
-Backend:
-
-```text
-git pull -> docker compose build/up
-```
-
-Frontend:
-
-```text
-npm build -> S3 upload -> CloudFront invalidation
-```
-
-The next goal is to move those steps into GitHub Actions so pushes to the deployment branch can update AWS automatically.
-
-That will complete the CI/CD portion of the project.
 
 ---
 
@@ -833,5 +804,5 @@ IAM user = local development only
 
 IAM role = EC2 production AWS access
 
-GitHub Actions = next step
+GitHub Actions = CI checks + automated AWS deployments
 ```
