@@ -1,4 +1,3 @@
-from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -8,6 +7,7 @@ from app.models.document_chunk import DocumentChunk
 from app.models.message import Message
 from app.models.notebook import Notebook
 from app.schemas.notebook import NotebookCreate, NotebookResponse, NotebookUpdate
+from app.services.s3_service import delete_file
 
 router = APIRouter(prefix="/notebooks", tags=["notebooks"])
 
@@ -74,17 +74,25 @@ def delete_notebook(notebook_id: int, db: Session = Depends(get_db)):
     documents = db.scalars(docs_stmt).all()
     doc_ids = [doc.id for doc in documents]
 
-    # 2. Delete all DocumentChunk vector embeddings
+    # 2. Clean up physical PDF files from S3
+    # Note: AWS S3 and PostgreSQL cannot participate in a single atomic two-phase commit.
+    # We delete S3 objects before finalizing SQL deletions, and if any S3 deletion fails,
+    # we explicitly rollback the database session and abort immediately with 502.
+    for doc in documents:
+        if doc.s3_key:
+            try:
+                delete_file(doc.s3_key)
+            except Exception:
+                db.rollback()
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Failed to delete document '{doc.file_name}' from storage",
+                )
+
+    # 3. Delete all DocumentChunk vector embeddings
     if doc_ids:
         chunk_stmt = delete(DocumentChunk).where(DocumentChunk.document_id.in_(doc_ids))
         db.execute(chunk_stmt)
-
-    # 3. Clean up physical PDF files from disk
-    for doc in documents:
-        if doc.file_path:
-            saved_file = Path(doc.file_path)
-            if saved_file.exists():
-                saved_file.unlink(missing_ok=True)
 
     # 4. Delete document records
     if doc_ids:

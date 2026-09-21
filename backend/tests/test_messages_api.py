@@ -84,7 +84,7 @@ def test_post_message_no_relevant_chunks(client, db_session):
     db_session.refresh(nb)
 
     # Add a document so has_docs is True
-    doc = Document(notebook_id=nb.id, file_name="notes.pdf", file_path="/fake/notes.pdf")
+    doc = Document(notebook_id=nb.id, file_name="notes.pdf", s3_key="notebooks/1/notes.pdf")
     db_session.add(doc)
     db_session.commit()
 
@@ -104,7 +104,7 @@ def test_post_message_success_with_citations(client, db_session):
     db_session.commit()
     db_session.refresh(nb)
 
-    doc = Document(notebook_id=nb.id, file_name="os_lecture.pdf", file_path="/fake/os.pdf")
+    doc = Document(notebook_id=nb.id, file_name="os_lecture.pdf", s3_key="notebooks/1/os.pdf")
     db_session.add(doc)
     db_session.commit()
     db_session.refresh(doc)
@@ -143,7 +143,7 @@ def test_post_message_rate_limit_error(client, db_session):
     db_session.commit()
     db_session.refresh(nb)
 
-    doc = Document(notebook_id=nb.id, file_name="notes.pdf", file_path="/fake.pdf")
+    doc = Document(notebook_id=nb.id, file_name="notes.pdf", s3_key="notebooks/1/fake.pdf")
     db_session.add(doc)
     db_session.commit()
 
