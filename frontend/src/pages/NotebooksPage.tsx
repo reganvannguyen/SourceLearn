@@ -195,6 +195,9 @@ const NotebooksPage = ({ onSelectNotebook }: NotebooksPageProps) => {
               <li>
                 <strong>Color Code:</strong> Use distinct course colors to navigate quickly.
               </li>
+              <li>
+                <strong>Ask from Your Sources:</strong> Upload PDFs and use citations to jump back to the original material.
+              </li>
             </ul>
           </div>
         </aside>
