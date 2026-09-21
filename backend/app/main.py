@@ -16,6 +16,8 @@ import app.models.message
 def init_db():
     with engine.begin() as connection:
         connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    Base.metadata.create_all(bind=engine)
+    with engine.begin() as connection:
         connection.execute(
             text("ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS color VARCHAR(50) DEFAULT '#aa3bff'")
         )
@@ -25,19 +27,7 @@ def init_db():
         connection.execute(
             text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_path VARCHAR DEFAULT ''")
         )
-        connection.execute(
-            text("""
-                CREATE TABLE IF NOT EXISTS messages (
-                    id SERIAL PRIMARY KEY,
-                    notebook_id INTEGER NOT NULL REFERENCES notebooks(id) ON DELETE CASCADE,
-                    sender VARCHAR(50) NOT NULL,
-                    content TEXT NOT NULL,
-                    citations JSONB DEFAULT '[]'::jsonb,
-                    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
-                )
-            """)
-        )
-    Base.metadata.create_all(bind=engine)
+
 
 
 @asynccontextmanager
